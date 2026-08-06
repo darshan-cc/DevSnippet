@@ -27,34 +27,45 @@ export function AuthProvider({ children }) {
         isProfileComplete: false,
         createdAt: new Date().toISOString()
       });
-      return true; // Profile needs setup
+      return true;
     }
 
     const data = userSnap.data();
-    return !data.isProfileComplete; // True if profile is incomplete
+    return !data.isProfileComplete;
   };
 
   const logout = () => signOut(auth);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        const userSnap = await getDoc(doc(db, "users", user.uid));
-        if (userSnap.exists()) {
-          setUserProfile(userSnap.data());
+      try {
+        setCurrentUser(user);
+        if (user) {
+          const userSnap = await getDoc(doc(db, "users", user.uid));
+          if (userSnap.exists()) {
+            setUserProfile(userSnap.data());
+          }
+        } else {
+          setUserProfile(null);
         }
-      } else {
-        setUserProfile(null);
+      } catch (error) {
+        console.error("Auth state change error:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsubscribe;
   }, []);
 
   return (
     <AuthContext.Provider value={{ currentUser, userProfile, setUserProfile, loginWithGoogle, logout }}>
-      {!loading && children}
+      {loading ? (
+        <div style={{ color: "#ffffff", display: "grid", placeItems: "center", minHeight: "100vh", backgroundColor: "#121212" }}>
+          Loading DevSnippet...
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 }
