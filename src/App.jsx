@@ -10,7 +10,7 @@ import CreateSnippet from "./pages/CreateSnippet";
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename="/DevSnippet">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/setup-profile" element={<ProtectedRoute><SetupProfile /></ProtectedRoute>} />
