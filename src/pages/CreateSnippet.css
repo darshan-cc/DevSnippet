@@ -1,12 +1,16 @@
 .create-wrapper {
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 24px;
+  max-width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
   gap: 28px;
+  background-color: var(--bg);
+  color: var(--text-h);
   box-sizing: border-box;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .create-nav {
@@ -15,8 +19,8 @@
 }
 
 .create-card {
-  border: 2px solid var(--border-color);
-  background-color: var(--card-bg);
+  border: 2px solid var(--border);
+  background-color: var(--bg);
   padding: 32px;
   width: 100%;
   box-sizing: border-box;
@@ -30,8 +34,9 @@
   font-weight: 800;
   letter-spacing: 1px;
   margin: 0;
-  border-bottom: 2px solid var(--border-color);
+  border-bottom: 2px solid var(--border);
   padding-bottom: 16px;
+  color: var(--text-h);
 }
 
 .create-form {
@@ -65,12 +70,13 @@
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.5px;
+  color: var(--text-h);
 }
 
 .brutalist-input {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  border: 2px solid var(--border-color);
+  background-color: var(--bg);
+  color: var(--text-h);
+  border: 2px solid var(--border);
   padding: 12px 14px;
   font-size: 14px;
   outline: none;
@@ -79,7 +85,7 @@
 }
 
 .brutalist-input:focus {
-  background-color: var(--bg-secondary);
+  background-color: var(--code-bg);
 }
 
 .brutalist-select {
@@ -93,7 +99,7 @@
 
 .code-area {
   height: 320px;
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 14px;
   line-height: 1.6;
   resize: vertical;
@@ -104,7 +110,7 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  border-top: 2px solid var(--border-color);
+  border-top: 2px solid var(--border);
   padding-top: 20px;
 }
 
@@ -112,36 +118,38 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: var(--card-bg);
-  color: var(--text-primary);
-  border: 2px solid var(--border-color);
+  background-color: var(--bg);
+  color: var(--text-h);
+  border: 2px solid var(--border);
   padding: 12px 20px;
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .brutalist-btn:hover {
-  background-color: var(--accent-invert);
-  color: var(--accent-text-invert);
+  background-color: var(--text-h);
+  color: var(--bg);
 }
 
 .brutalist-btn.primary {
-  background-color: var(--accent-invert);
-  color: var(--accent-text-invert);
+  background-color: var(--text-h);
+  color: var(--bg);
 }
 
 .brutalist-btn.primary:hover {
-  background-color: var(--card-bg);
-  color: var(--text-primary);
+  background-color: var(--bg);
+  color: var(--text-h);
 }
 
 .error-banner {
-  border: 2px solid #ff0000;
-  color: #ff0000;
+  border: 2px solid #ff3333;
+  color: #ff3333;
   padding: 12px;
   font-size: 13px;
   font-weight: 700;
+  background-color: rgba(255, 51, 51, 0.05);
 }
 
 @media (max-width: 768px) {

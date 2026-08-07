@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, addDoc } from "firebase/firestore";
-import { ArrowLeft, Code, Send } from "lucide-react";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { ArrowLeft, Send } from "lucide-react";
 import "./CreateSnippet.css";
 
 export default function CreateSnippet() {
@@ -20,6 +20,11 @@ export default function CreateSnippet() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (!currentUser) {
+      setError("YOU_MUST_BE_LOGGED_IN");
+      return;
+    }
 
     if (!title.trim()) {
       setError("TITLE_IS_REQUIRED");
@@ -41,21 +46,21 @@ export default function CreateSnippet() {
 
       await addDoc(collection(db, "snippets"), {
         title: title.trim(),
-        language: language.trim() || "Plain Text",
+        language: language.trim() || "javascript",
         description: description.trim(),
         code: code,
-        userId: currentUser?.uid || "",
+        userId: currentUser.uid,
         authorName: userDisplayName,
         likes: [],
         savedBy: [],
         comments: [],
-        createdAt: new Date().toISOString(),
+        createdAt: serverTimestamp(),
       });
 
       navigate("/profile");
     } catch (err) {
       console.error("Error creating snippet:", err);
-      setError("FAILED_TO_PUBLISH_SNIPPET");
+      setError(err.message || "FAILED_TO_PUBLISH_SNIPPET");
     } finally {
       setIsSubmitting(false);
     }
@@ -69,8 +74,8 @@ export default function CreateSnippet() {
         </button>
       </header>
 
-      <section className="brutalist-card create-card">
-        <h2 className="create-title"> PUBLISH_NEW_SNIPPET</h2>
+      <section className="create-card">
+        <h2 className="create-title">PUBLISH_NEW_SNIPPET</h2>
 
         {error && <div className="error-banner">{error}</div>}
 
@@ -126,7 +131,7 @@ export default function CreateSnippet() {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               className="brutalist-input code-area"
-              placeholder=" Paste or write your code here..."
+              placeholder="Paste or write your code here..."
               required
             />
           </div>
