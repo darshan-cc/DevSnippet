@@ -1,0 +1,81 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Base Theme Variables (Dark Mode Default) */
+:root,
+:root[data-theme="dark"] {
+  --text: #9ca3af;
+  --text-h: #f3f4f6;
+  --bg: #121212;
+  --bg-card: #1b1c22;
+  --border: #2e303a;
+  --code-bg: #1e1e1e;
+  --accent: #646cff;
+  --input-bg: #121212;
+
+  color-scheme: dark;
+  color: var(--text-h);
+  background-color: var(--bg);
+}
+
+/* Light Mode Overrides */
+:root[data-theme="light"] {
+  --text: #4b5563;
+  --text-h: #111827;
+  --bg: #f8f9fa;
+  --bg-card: #ffffff;
+  --border: #e5e7eb;
+  --code-bg: #f3f4f6;
+  --accent: #4f46e5;
+  --input-bg: #f3f4f6;
+
+  color-scheme: light;
+  color: var(--text-h);
+  background-color: var(--bg);
+}
+
+/* Global Styles */
+:root {
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--text-h);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3 {
+  color: var(--text-h);
+}
+
+p {
+  margin: 0;
+  color: var(--text);
+}
+
+code, pre {
+  font-family: ui-monospace, Consolas, monospace;
+  background-color: var(--code-bg);
+  color: var(--text-h);
+}

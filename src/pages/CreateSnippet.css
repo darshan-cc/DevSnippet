@@ -1,0 +1,151 @@
+.create-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  box-sizing: border-box;
+}
+
+.create-nav {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.create-card {
+  border: 2px solid var(--border-color);
+  background-color: var(--card-bg);
+  padding: 32px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.create-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin: 0;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 16px;
+}
+
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.flex-2 {
+  flex: 2;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.brutalist-input {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+  padding: 12px 14px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.brutalist-input:focus {
+  background-color: var(--bg-secondary);
+}
+
+.brutalist-select {
+  cursor: pointer;
+}
+
+.textarea-short {
+  height: 90px;
+  resize: vertical;
+}
+
+.code-area {
+  height: 320px;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  white-space: pre;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 2px solid var(--border-color);
+  padding-top: 20px;
+}
+
+.brutalist-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+  padding: 12px 20px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.brutalist-btn:hover {
+  background-color: var(--accent-invert);
+  color: var(--accent-text-invert);
+}
+
+.brutalist-btn.primary {
+  background-color: var(--accent-invert);
+  color: var(--accent-text-invert);
+}
+
+.brutalist-btn.primary:hover {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+}
+
+.error-banner {
+  border: 2px solid #ff0000;
+  color: #ff0000;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+  }
+}
