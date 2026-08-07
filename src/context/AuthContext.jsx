@@ -10,30 +10,6 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loginWithGoogle = async () => {
-    const res = await signInWithPopup(auth, googleProvider);
-    const user = res.user;
-
-    const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userRef);
-
-    if (!userSnap.exists()) {
-      await setDoc(userRef, {
-        uid: user.uid,
-        displayName: user.displayName || "",
-        email: user.email,
-        photoURL: user.photoURL || "",
-        bio: "",
-        isProfileComplete: false,
-        createdAt: new Date().toISOString()
-      });
-      return true;
-    }
-
-    const data = userSnap.data();
-    return !data.isProfileComplete;
-  };
-
   const logout = () => signOut(auth);
 
   useEffect(() => {
@@ -41,8 +17,22 @@ export function AuthProvider({ children }) {
       try {
         setCurrentUser(user);
         if (user) {
-          const userSnap = await getDoc(doc(db, "users", user.uid));
-          if (userSnap.exists()) {
+          const userRef = doc(db, "users", user.uid);
+          const userSnap = await getDoc(userRef);
+
+          if (!userSnap.exists()) {
+            const newUserData = {
+              uid: user.uid,
+              displayName: user.displayName || user.email?.split("@")[0] || "Developer",
+              email: user.email,
+              photoURL: user.photoURL || "",
+              bio: "",
+              isProfileComplete: true,
+              createdAt: new Date().toISOString()
+            };
+            await setDoc(userRef, newUserData);
+            setUserProfile(newUserData);
+          } else {
             setUserProfile(userSnap.data());
           }
         } else {
@@ -58,7 +48,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ currentUser, userProfile, setUserProfile, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ currentUser, userProfile, setUserProfile, logout }}>
       {loading ? (
         <div style={{ color: "#ffffff", display: "grid", placeItems: "center", minHeight: "100vh", backgroundColor: "#121212" }}>
           Loading DevSnippet...

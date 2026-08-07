@@ -1,5 +1,10 @@
-import { useState } from "react";
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { useState, useEffect } from "react";
+import { 
+  signInWithPopup, 
+  signInWithRedirect, 
+  getRedirectResult, 
+  GoogleAuthProvider 
+} from "firebase/auth";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import { Code2, AlertCircle } from "lucide-react";
@@ -9,17 +14,39 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Handle redirect response on mobile after returning from Google
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          navigate("/");
+        }
+      })
+      .catch((err) => {
+        console.error("Redirect sign in error:", err);
+        setError(err.message || "Failed to sign in. Please try again.");
+      });
+  }, [navigate]);
+
   const handleGoogleLogin = async () => {
     setError("");
     setLoading(true);
+
+    const provider = new GoogleAuthProvider();
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      navigate("/");
+      if (isMobile) {
+        // Mobile browsers block popups; use redirect instead
+        await signInWithRedirect(auth, provider);
+      } else {
+        // Desktop browsers work fine with popup
+        await signInWithPopup(auth, provider);
+        navigate("/");
+      }
     } catch (err) {
       console.error("Google sign in error:", err);
-      setError("Failed to sign in. Please check Firebase domain settings.");
-    } finally {
+      setError(err.message || "Failed to sign in with Google.");
       setLoading(false);
     }
   };
