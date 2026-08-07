@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
 import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User, Edit2, Check, X, AlertCircle, Trash2 } from "lucide-react";
+import { ArrowLeft, LogOut, User, Edit2, Check, X, AlertCircle, Trash2, Plus } from "lucide-react";
 
 export default function Profile() {
   const { currentUser, userProfile, logout } = useAuth();
@@ -395,16 +395,68 @@ export default function Profile() {
         )}
       </div>
 
-      {/* Snippets List */}
-      <h3 style={{ textAlign: "left", marginBottom: "20px", fontSize: "20px", color: "#f3f4f6" }}>
-        My Snippets ({mySnippets.length})
-      </h3>
+      {/* Snippets Header with Create Post Button */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <h3 style={{ margin: 0, fontSize: "20px", color: "#f3f4f6" }}>
+          My Snippets ({mySnippets.length})
+        </h3>
+        <button
+          onClick={() => navigate("/create-snippet")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "8px 16px",
+            backgroundColor: "#646cff",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontWeight: "600",
+            fontSize: "14px",
+            transition: "opacity 0.2s ease"
+          }}
+        >
+          <Plus size={16} /> Create Post
+        </button>
+      </div>
 
       {loading ? (
         <p style={{ textAlign: "left", color: "#aaa" }}>Loading your snippets...</p>
       ) : mySnippets.length === 0 ? (
-        <div style={{ backgroundColor: "#1b1c22", border: "1px solid #2e303a", borderRadius: "12px", padding: "40px", textAlign: "center" }}>
-          <p style={{ color: "#aaa", fontSize: "16px" }}>You haven't created any code snippets yet.</p>
+        /* Empty State with Create Post Option */
+        <div 
+          style={{ 
+            backgroundColor: "#1b1c22", 
+            border: "1px solid #2e303a", 
+            borderRadius: "12px", 
+            padding: "40px", 
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "16px"
+          }}
+        >
+          <p style={{ color: "#aaa", fontSize: "16px", margin: 0 }}>You haven't created any code snippets yet.</p>
+          <button
+            onClick={() => navigate("/create-snippet")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 18px",
+              backgroundColor: "#646cff",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "15px"
+            }}
+          >
+            <Plus size={18} /> Create Post
+          </button>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
