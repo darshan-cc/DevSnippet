@@ -8,7 +8,7 @@ import {
 } from "firebase/firestore";
 import { 
   ArrowLeft, User, Edit2, Check, X, Trash2, Plus, 
-  Heart, Bookmark, MessageSquare, Copy, ShieldCheck, Code, LogOut 
+  Heart, Bookmark, MessageSquare, Copy, ShieldCheck, Code, LogOut, Send 
 } from "lucide-react";
 import "./Profile.css";
 
@@ -20,6 +20,11 @@ export default function Profile() {
 
   // Interaction States
   const [copiedId, setCopiedId] = useState(null);
+
+  // Comment States
+  const [expandedCommentId, setExpandedCommentId] = useState(null);
+  const [commentInput, setCommentInput] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   // Profile Edit States
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -94,6 +99,48 @@ export default function Profile() {
       });
     } catch (error) {
       console.error("Error toggling save:", error);
+    }
+  };
+
+  const handleToggleComments = (snippetId) => {
+    if (expandedCommentId === snippetId) {
+      setExpandedCommentId(null);
+    } else {
+      setExpandedCommentId(snippetId);
+      setCommentInput("");
+    }
+  };
+
+  const handleAddComment = async (snippetId) => {
+    if (!commentInput.trim()) return;
+    setSubmittingComment(true);
+
+    const newComment = {
+      id: Date.now().toString(),
+      text: commentInput.trim(),
+      authorName: userDisplayName,
+      userId: userId,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const snippetRef = doc(db, "snippets", snippetId);
+      await updateDoc(snippetRef, {
+        comments: arrayUnion(newComment)
+      });
+
+      setAllSnippets((prev) =>
+        prev.map((s) =>
+          s.id === snippetId
+            ? { ...s, comments: [...(s.comments || []), newComment] }
+            : s
+        )
+      );
+      setCommentInput("");
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    } finally {
+      setSubmittingComment(false);
     }
   };
 
@@ -375,13 +422,49 @@ export default function Profile() {
                           <button onClick={() => handleToggleLike(s)} className={`brutalist-action ${isLiked ? "active" : ""}`}>
                             <Heart size={14} /> {(s.likes || []).length}
                           </button>
-                          <div className="comment-count">
-                            <MessageSquare size={14} /> {(s.comments || []).length} COMMENTS
-                          </div>
+                          <button onClick={() => handleToggleComments(s.id)} className={`brutalist-action ${expandedCommentId === s.id ? "active" : ""}`}>
+                            <MessageSquare size={14} /> {(s.comments || []).length}
+                          </button>
                           <button onClick={() => handleToggleSave(s)} className={`brutalist-action save-btn ${isSaved ? "active" : ""}`}>
                             <Bookmark size={14} /> {isSaved ? "SAVED" : "SAVE"}
                           </button>
                         </div>
+
+                        {expandedCommentId === s.id && (
+                          <div className="comments-section">
+                            <div className="comments-list">
+                              {(s.comments || []).length === 0 ? (
+                                <p className="no-comments">// NO_COMMENTS_YET</p>
+                              ) : (
+                                (s.comments || []).map((c, idx) => (
+                                  <div key={c.id || idx} className="comment-item">
+                                    <span className="comment-author">@{c.authorName || "anonymous"}</span>
+                                    <p className="comment-text">{c.text}</p>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                            <div className="add-comment-box">
+                              <input
+                                type="text"
+                                value={commentInput}
+                                onChange={(e) => setCommentInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleAddComment(s.id);
+                                }}
+                                placeholder="ADD_A_COMMENT..."
+                                className="brutalist-input comment-input"
+                              />
+                              <button 
+                                onClick={() => handleAddComment(s.id)} 
+                                disabled={submittingComment}
+                                className="brutalist-btn primary"
+                              >
+                                <Send size={14} /> POST
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>

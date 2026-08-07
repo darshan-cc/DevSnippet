@@ -259,18 +259,66 @@
   margin-left: auto;
 }
 
-.comment-count {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
 .owner-actions {
   display: flex;
   gap: 8px;
+}
+
+/* Comments Drawer */
+.comments-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 2px solid var(--border-color);
+  padding-top: 16px;
+  margin-top: 4px;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.comment-item {
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.comment-author {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.comment-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.no-comments {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.add-comment-box {
+  display: flex;
+  gap: 8px;
+}
+
+.comment-input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
 }
 
 /* Brutalist Inputs & Form Controls */
