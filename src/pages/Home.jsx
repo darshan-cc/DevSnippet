@@ -518,7 +518,7 @@ export default function Home() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid #2e303a" }}>
             <Users size={18} color="#646cff" />
-            <h3 style={{ margin: 0, fontSize: "16px", color="#f3f4f6" }}>Users</h3>
+            <h3 style={{ margin: 0, fontSize: "16px", color: "#f3f4f6" }}>Users</h3>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
