@@ -1,14 +1,26 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { 
+  collection, query, orderBy, getDocs, doc, 
+  updateDoc, deleteDoc, arrayUnion, arrayRemove 
+} from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User, Edit2, Check, X, AlertCircle, Trash2, Plus } from "lucide-react";
+import { 
+  ArrowLeft, LogOut, User, Edit2, Check, X, AlertCircle, Trash2, Plus, 
+  Heart, MessageSquare, Bookmark, Send, Copy, ShieldCheck, FileCode2 
+} from "lucide-react";
 
 export default function Profile() {
   const { currentUser, userProfile, logout } = useAuth();
-  const [mySnippets, setMySnippets] = useState([]);
+  const [allSnippets, setAllSnippets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("mySnippets"); // "mySnippets" | "liked" | "commented" | "saved" | "privacy"
+
+  // Interaction States
+  const [copiedId, setCopiedId] = useState(null);
+  const [activeCommentId, setActiveCommentId] = useState(null);
+  const [commentText, setCommentText] = useState("");
 
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -27,31 +39,110 @@ export default function Profile() {
   const [updating, setUpdating] = useState(false);
 
   const navigate = useNavigate();
+  const userId = currentUser?.uid || "anonymous_user";
+  const userDisplayName = userProfile?.displayName || currentUser?.displayName || currentUser?.email?.split("@")[0] || "";
 
   useEffect(() => {
-    const fetchMySnippets = async () => {
-      if (!currentUser) return;
+    const fetchSnippets = async () => {
       try {
-        const q = query(
-          collection(db, "snippets"),
-          where("userId", "==", currentUser.uid)
-        );
+        const q = query(collection(db, "snippets"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
         const list = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setMySnippets(list);
+        setAllSnippets(list);
       } catch (error) {
-        console.error("Error fetching my snippets:", error);
+        console.error("Error fetching snippets:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMySnippets();
-  }, [currentUser]);
+    fetchSnippets();
+  }, []);
 
   const handleLogout = async () => {
     await logout();
     navigate("/login");
+  };
+
+  // --- Interaction Handlers ---
+  const handleCopy = (id, codeText) => {
+    navigator.clipboard.writeText(codeText);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleToggleLike = async (snippet) => {
+    const likesList = snippet.likes || [];
+    const isLiked = likesList.includes(userId);
+
+    const updatedLikes = isLiked
+      ? likesList.filter((id) => id !== userId)
+      : [...likesList, userId];
+
+    setAllSnippets((prev) =>
+      prev.map((s) => (s.id === snippet.id ? { ...s, likes: updatedLikes } : s))
+    );
+
+    try {
+      const snippetRef = doc(db, "snippets", snippet.id);
+      await updateDoc(snippetRef, {
+        likes: isLiked ? arrayRemove(userId) : arrayUnion(userId)
+      });
+    } catch (error) {
+      console.error("Error updating likes:", error);
+    }
+  };
+
+  const handleToggleSave = async (snippet) => {
+    const savedByList = snippet.savedBy || [];
+    const isSaved = savedByList.includes(userId);
+
+    const updatedSavedBy = isSaved
+      ? savedByList.filter((id) => id !== userId)
+      : [...savedByList, userId];
+
+    setAllSnippets((prev) =>
+      prev.map((s) => (s.id === snippet.id ? { ...s, savedBy: updatedSavedBy } : s))
+    );
+
+    try {
+      const snippetRef = doc(db, "snippets", snippet.id);
+      await updateDoc(snippetRef, {
+        savedBy: isSaved ? arrayRemove(userId) : arrayUnion(userId)
+      });
+    } catch (error) {
+      console.error("Error updating saved status:", error);
+    }
+  };
+
+  const handleAddComment = async (snippetId) => {
+    if (!commentText.trim()) return;
+
+    const newComment = {
+      id: Date.now().toString(),
+      authorName: userDisplayName || "Guest",
+      text: commentText.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    setAllSnippets((prev) =>
+      prev.map((s) =>
+        s.id === snippetId
+          ? { ...s, comments: [...(s.comments || []), newComment] }
+          : s
+      )
+    );
+
+    setCommentText("");
+
+    try {
+      const snippetRef = doc(db, "snippets", snippetId);
+      await updateDoc(snippetRef, {
+        comments: arrayUnion(newComment)
+      });
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    }
   };
 
   // --- Username Validation ---
@@ -130,7 +221,7 @@ export default function Profile() {
     }
   };
 
-  // --- Snippet Handlers ---
+  // --- Snippet Edit / Delete Handlers ---
   const startEditingSnippet = (s) => {
     setEditingId(s.id);
     setEditTitle(s.title || "");
@@ -157,7 +248,7 @@ export default function Profile() {
 
       await updateDoc(snippetRef, updatedData);
 
-      setMySnippets((prev) =>
+      setAllSnippets((prev) =>
         prev.map((item) => (item.id === snippetId ? { ...item, ...updatedData } : item))
       );
       setEditingId(null);
@@ -174,15 +265,37 @@ export default function Profile() {
 
     try {
       await deleteDoc(doc(db, "snippets", snippetId));
-      setMySnippets((prev) => prev.filter((item) => item.id !== snippetId));
+      setAllSnippets((prev) => prev.filter((item) => item.id !== snippetId));
     } catch (error) {
       console.error("Error deleting snippet:", error);
       alert("Failed to delete snippet. Please try again.");
     }
   };
 
+  // Filter snippets based on current Tab selection
+  const filteredSnippets = allSnippets.filter((s) => {
+    if (activeTab === "mySnippets") return s.userId === userId;
+    if (activeTab === "liked") return (s.likes || []).includes(userId);
+    if (activeTab === "commented") {
+      return (s.comments || []).some((c) => c.authorName?.toLowerCase() === userDisplayName.toLowerCase());
+    }
+    if (activeTab === "saved") return (s.savedBy || []).includes(userId);
+    return false;
+  });
+
+  const getSectionTitle = () => {
+    switch (activeTab) {
+      case "mySnippets": return `My Snippets (${filteredSnippets.length})`;
+      case "liked": return `Liked Posts (${filteredSnippets.length})`;
+      case "commented": return `Commented Posts (${filteredSnippets.length})`;
+      case "saved": return `Saved Posts (${filteredSnippets.length})`;
+      case "privacy": return "Privacy Policy";
+      default: return "";
+    }
+  };
+
   return (
-    <div style={{ width: "100%", maxWidth: "1200px", margin: "0 auto", padding: "30px 20px", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", maxWidth: "1280px", margin: "0 auto", padding: "30px 20px", boxSizing: "border-box" }}>
       {/* Back Button */}
       <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: "24px" }}>
         <button 
@@ -204,7 +317,7 @@ export default function Profile() {
         </button>
       </div>
 
-      {/* Profile Card */}
+      {/* Profile Header Card */}
       <div 
         style={{ 
           backgroundColor: "#1b1c22", 
@@ -334,7 +447,7 @@ export default function Profile() {
             </div>
           </div>
         ) : (
-          /* READ-ONLY PROFILE */
+          /* READ-ONLY PROFILE HEADER */
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -348,44 +461,24 @@ export default function Profile() {
                   <small style={{ color: "#888" }}>{currentUser?.email}</small>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                <button 
-                  onClick={startEditingProfile}
-                  style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: "6px", 
-                    padding: "8px 14px", 
-                    backgroundColor: "#2e303a", 
-                    color: "#ffffff", 
-                    border: "none", 
-                    borderRadius: "6px", 
-                    cursor: "pointer",
-                    fontWeight: "500",
-                    fontSize: "14px"
-                  }}
-                >
-                  <Edit2 size={15} /> Edit Profile
-                </button>
-                <button 
-                  onClick={handleLogout} 
-                  style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: "6px", 
-                    padding: "8px 16px", 
-                    backgroundColor: "#e63946", 
-                    color: "#ffffff", 
-                    border: "none", 
-                    borderRadius: "6px", 
-                    cursor: "pointer",
-                    fontWeight: "600",
-                    fontSize: "14px"
-                  }}
-                >
-                  <LogOut size={16} /> Logout
-                </button>
-              </div>
+              <button 
+                onClick={startEditingProfile}
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "6px", 
+                  padding: "8px 14px", 
+                  backgroundColor: "#2e303a", 
+                  color: "#ffffff", 
+                  border: "none", 
+                  borderRadius: "6px", 
+                  cursor: "pointer",
+                  fontWeight: "500",
+                  fontSize: "14px"
+                }}
+              >
+                <Edit2 size={15} /> Edit Profile
+              </button>
             </div>
             
             <p style={{ color: "#9ca3af", marginTop: "16px", marginBottom: 0, fontSize: "15px" }}>
@@ -395,314 +488,670 @@ export default function Profile() {
         )}
       </div>
 
-      {/* Snippets Header with Create Post Button */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h3 style={{ margin: 0, fontSize: "20px", color: "#f3f4f6" }}>
-          My Snippets ({mySnippets.length})
-        </h3>
-        <button
-          onClick={() => navigate("/create-snippet")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "8px 16px",
-            backgroundColor: "#646cff",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: "600",
-            fontSize: "14px",
-            transition: "opacity 0.2s ease"
-          }}
-        >
-          <Plus size={16} /> Create Post
-        </button>
-      </div>
+      {/* Two-Column Layout: Main Content + Right Navigation Sidebar */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 240px", gap: "24px", alignItems: "start" }}>
+        
+        {/* Main Section */}
+        <main style={{ minWidth: 0, textAlign: "left" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <h3 style={{ margin: 0, fontSize: "20px", color: "#f3f4f6" }}>
+              {getSectionTitle()}
+            </h3>
+            {activeTab === "mySnippets" && (
+              <button
+                onClick={() => navigate("/create-snippet")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 16px",
+                  backgroundColor: "#646cff",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "14px"
+                }}
+              >
+                <Plus size={16} /> Create Post
+              </button>
+            )}
+          </div>
 
-      {loading ? (
-        <p style={{ textAlign: "left", color: "#aaa" }}>Loading your snippets...</p>
-      ) : mySnippets.length === 0 ? (
-        /* Empty State with Create Post Option */
-        <div 
+          {activeTab === "privacy" ? (
+            /* PRIVACY POLICY VIEW */
+            <div style={{ backgroundColor: "#1b1c22", border: "1px solid #2e303a", borderRadius: "12px", padding: "28px", color: "#d1d5db", lineHeight: "1.6" }}>
+              <h2 style={{ color: "#f3f4f6", marginTop: 0 }}>Privacy Policy</h2>
+              <p>At DevSnippet, we prioritize developer privacy and data control.</p>
+              
+              <strong style={{ color: "#646cff", display: "block", marginTop: "16px" }}>1. Information We Collect</strong>
+              <p style={{ margin: "4px 0" }}>We collect your email address, chosen username, and code snippets uploaded to our platform.</p>
+
+              <strong style={{ color: "#646cff", display: "block", marginTop: "16px" }}>2. How Information Is Used</strong>
+              <p style={{ margin: "4px 0" }}>Your public profile and code snippets are visible to other developers for sharing, saving, and collaboration purposes.</p>
+
+              <strong style={{ color: "#646cff", display: "block", marginTop: "16px" }}>3. Data Control & Security</strong>
+              <p style={{ margin: "4px 0" }}>You retain full rights to edit or delete your posted snippets at any time from your profile page.</p>
+            </div>
+          ) : loading ? (
+            <p style={{ textAlign: "left", color: "#aaa" }}>Loading snippets...</p>
+          ) : filteredSnippets.length === 0 ? (
+            /* EMPTY STATE */
+            <div 
+              style={{ 
+                backgroundColor: "#1b1c22", 
+                border: "1px solid #2e303a", 
+                borderRadius: "12px", 
+                padding: "40px", 
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "16px"
+              }}
+            >
+              <p style={{ color: "#aaa", fontSize: "16px", margin: 0 }}>
+                {activeTab === "mySnippets" && "You haven't created any code snippets yet."}
+                {activeTab === "liked" && "You haven't liked any code snippets yet."}
+                {activeTab === "commented" && "You haven't commented on any posts yet."}
+                {activeTab === "saved" && "You haven't saved any code snippets yet."}
+              </p>
+              {activeTab === "mySnippets" && (
+                <button
+                  onClick={() => navigate("/create-snippet")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "10px 18px",
+                    backgroundColor: "#646cff",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    fontSize: "15px"
+                  }}
+                >
+                  <Plus size={18} /> Create Post
+                </button>
+              )}
+            </div>
+          ) : (
+            /* SNIPPETS FEED */
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {filteredSnippets.map((s) => {
+                const isLiked = (s.likes || []).includes(userId);
+                const isSaved = (s.savedBy || []).includes(userId);
+                const comments = s.comments || [];
+                const isOwner = s.userId === userId;
+
+                return (
+                  <div 
+                    key={s.id} 
+                    style={{ 
+                      backgroundColor: "#1b1c22", 
+                      border: "1px solid #2e303a", 
+                      borderRadius: "10px", 
+                      padding: "20px", 
+                      textAlign: "left" 
+                    }}
+                  >
+                    {editingId === s.id ? (
+                      /* EDIT SNIPPET FORM */
+                      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                          <div>
+                            <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#f3f4f6", fontSize: "13px" }}>
+                              Title *
+                            </label>
+                            <input 
+                              type="text"
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              style={{
+                                width: "100%",
+                                padding: "10px 12px",
+                                borderRadius: "6px",
+                                border: "1px solid #2e303a",
+                                backgroundColor: "#121212",
+                                color: "#ffffff",
+                                fontSize: "14px",
+                                outline: "none",
+                                boxSizing: "border-box"
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#f3f4f6", fontSize: "13px" }}>
+                              Language
+                            </label>
+                            <input 
+                              type="text"
+                              value={editLanguage}
+                              onChange={(e) => setEditLanguage(e.target.value)}
+                              placeholder="e.g. JavaScript, Python"
+                              style={{
+                                width: "100%",
+                                padding: "10px 12px",
+                                borderRadius: "6px",
+                                border: "1px solid #2e303a",
+                                backgroundColor: "#121212",
+                                color: "#ffffff",
+                                fontSize: "14px",
+                                outline: "none",
+                                boxSizing: "border-box"
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#f3f4f6", fontSize: "13px" }}>
+                            Description
+                          </label>
+                          <input 
+                            type="text"
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              borderRadius: "6px",
+                              border: "1px solid #2e303a",
+                              backgroundColor: "#121212",
+                              color: "#ffffff",
+                              fontSize: "14px",
+                              outline: "none",
+                              boxSizing: "border-box"
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#f3f4f6", fontSize: "13px" }}>
+                            Problem Statement (Optional)
+                          </label>
+                          <textarea 
+                            value={editProblem}
+                            onChange={(e) => setEditProblem(e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              height: "70px",
+                              borderRadius: "6px",
+                              border: "1px solid #2e303a",
+                              backgroundColor: "#121212",
+                              color: "#ffffff",
+                              fontSize: "14px",
+                              resize: "vertical",
+                              outline: "none",
+                              boxSizing: "border-box"
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#f3f4f6", fontSize: "13px" }}>
+                            Code *
+                          </label>
+                          <textarea 
+                            value={editCode}
+                            onChange={(e) => setEditCode(e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "12px",
+                              height: "180px",
+                              borderRadius: "6px",
+                              border: "1px solid #2e303a",
+                              backgroundColor: "#121212",
+                              color: "#ffffff",
+                              fontSize: "14px",
+                              fontFamily: "ui-monospace, Consolas, monospace",
+                              resize: "vertical",
+                              outline: "none",
+                              boxSizing: "border-box"
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "4px" }}>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            disabled={updating}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "8px 16px",
+                              backgroundColor: "transparent",
+                              border: "1px solid #2e303a",
+                              color: "#ffffff",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              fontSize: "14px"
+                            }}
+                          >
+                            <X size={16} /> Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSaveSnippet(s.id)}
+                            disabled={updating}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "8px 16px",
+                              backgroundColor: "#646cff",
+                              border: "none",
+                              color: "#ffffff",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              fontWeight: "600",
+                              fontSize: "14px",
+                              opacity: updating ? 0.7 : 1
+                            }}
+                          >
+                            <Check size={16} /> {updating ? "Saving..." : "Save Changes"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* READ-ONLY DISPLAY */
+                      <>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <h3 style={{ margin: 0, fontSize: "20px", color: "#f3f4f6" }}>{s.title}</h3>
+                              {s.language && (
+                                <span style={{ backgroundColor: "#2e303a", color: "#646cff", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "600" }}>
+                                  {s.language}
+                                </span>
+                              )}
+                            </div>
+                            <span style={{ color: "#888", fontSize: "13px", display: "block", marginTop: "4px" }}>
+                              by <strong style={{ color: "#aaa" }}>{s.authorName}</strong>
+                            </span>
+                          </div>
+
+                          {isOwner && (
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <button
+                                onClick={() => startEditingSnippet(s)}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  backgroundColor: "#2e303a",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  padding: "6px 12px",
+                                  color: "#ffffff",
+                                  cursor: "pointer",
+                                  fontSize: "13px",
+                                  fontWeight: "500"
+                                }}
+                                title="Edit snippet"
+                              >
+                                <Edit2 size={14} /> Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSnippet(s.id)}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  backgroundColor: "#e63946",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  padding: "6px 12px",
+                                  color: "#ffffff",
+                                  cursor: "pointer",
+                                  fontSize: "13px",
+                                  fontWeight: "500"
+                                }}
+                                title="Delete snippet"
+                              >
+                                <Trash2 size={14} /> Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {s.description && (
+                          <p style={{ margin: "8px 0 12px 0", color: "#9ca3af", fontSize: "15px" }}>{s.description}</p>
+                        )}
+
+                        {s.problem && (
+                          <div style={{ backgroundColor: "#121212", border: "1px solid #2e303a", padding: "10px 14px", borderRadius: "6px", marginBottom: "12px", fontSize: "14px", color: "#d1d5db" }}>
+                            <strong style={{ color: "#646cff" }}>Problem:</strong> {s.problem}
+                          </div>
+                        )}
+
+                        {/* Code Box with Copy Button */}
+                        <div style={{ position: "relative" }}>
+                          <button
+                            onClick={() => handleCopy(s.id, s.code)}
+                            style={{
+                              position: "absolute",
+                              top: "10px",
+                              right: "10px",
+                              backgroundColor: "#2e303a",
+                              border: "none",
+                              borderRadius: "6px",
+                              padding: "6px 12px",
+                              color: "#ffffff",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              fontSize: "13px",
+                              fontWeight: "500",
+                              zIndex: 10
+                            }}
+                            title="Copy code to clipboard"
+                          >
+                            {copiedId === s.id ? (
+                              <>
+                                <Check size={14} color="#4ade80" /> Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={14} /> Copy
+                              </>
+                            )}
+                          </button>
+
+                          <pre style={{ backgroundColor: "#121212", border: "1px solid #2e303a", padding: "16px", paddingRight: "90px", borderRadius: "6px", overflowX: "auto", fontFamily: "ui-monospace, Consolas, monospace", margin: 0, fontSize: "14px", color: "#e5e7eb" }}>
+                            <code>{s.code}</code>
+                          </pre>
+                        </div>
+
+                        {/* Interaction Bar (Like, Comment, Save) */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", paddingTop: "12px", borderTop: "1px solid #2e303a" }}>
+                          <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                            {/* Like Button */}
+                            <button
+                              onClick={() => handleToggleLike(s)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                background: "none",
+                                border: "none",
+                                color: isLiked ? "#ef4444" : "#9ca3af",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                padding: 0
+                              }}
+                            >
+                              <Heart size={18} fill={isLiked ? "#ef4444" : "none"} color={isLiked ? "#ef4444" : "#9ca3af"} />
+                              <span>{(s.likes || []).length}</span>
+                            </button>
+
+                            {/* Comment Button */}
+                            <button
+                              onClick={() => setActiveCommentId(activeCommentId === s.id ? null : s.id)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                background: "none",
+                                border: "none",
+                                color: activeCommentId === s.id ? "#646cff" : "#9ca3af",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                padding: 0
+                              }}
+                            >
+                              <MessageSquare size={18} />
+                              <span>{comments.length}</span>
+                            </button>
+                          </div>
+
+                          {/* Save Button */}
+                          <button
+                            onClick={() => handleToggleSave(s)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              background: "none",
+                              border: "none",
+                              color: isSaved ? "#646cff" : "#9ca3af",
+                              cursor: "pointer",
+                              fontSize: "14px",
+                              padding: 0
+                            }}
+                          >
+                            <Bookmark size={18} fill={isSaved ? "#646cff" : "none"} color={isSaved ? "#646cff" : "#9ca3af"} />
+                            <span>{isSaved ? "Saved" : "Save"}</span>
+                          </button>
+                        </div>
+
+                        {/* Expandable Comments Section */}
+                        {activeCommentId === s.id && (
+                          <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #2e303a" }}>
+                            {comments.length > 0 && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "14px" }}>
+                                {comments.map((c) => (
+                                  <div key={c.id} style={{ backgroundColor: "#121212", border: "1px solid #2e303a", borderRadius: "6px", padding: "10px 12px" }}>
+                                    <div style={{ fontSize: "12px", color: "#646cff", fontWeight: "600", marginBottom: "4px" }}>
+                                      {c.authorName}
+                                    </div>
+                                    <div style={{ fontSize: "14px", color: "#d1d5db" }}>
+                                      {c.text}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* New Comment Input */}
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <input
+                                type="text"
+                                placeholder="Add a comment..."
+                                value={commentText}
+                                onChange={(e) => setCommentText(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleAddComment(s.id)}
+                                style={{
+                                  flex: 1,
+                                  backgroundColor: "#121212",
+                                  border: "1px solid #2e303a",
+                                  borderRadius: "6px",
+                                  padding: "8px 12px",
+                                  color: "#ffffff",
+                                  fontSize: "14px",
+                                  outline: "none"
+                                }}
+                              />
+                              <button
+                                onClick={() => handleAddComment(s.id)}
+                                style={{
+                                  backgroundColor: "#646cff",
+                                  color: "#ffffff",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  padding: "8px 14px",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center"
+                                }}
+                              >
+                                <Send size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </main>
+
+        {/* Right Navigation Sidebar */}
+        <aside 
           style={{ 
             backgroundColor: "#1b1c22", 
             border: "1px solid #2e303a", 
             borderRadius: "12px", 
-            padding: "40px", 
-            textAlign: "center",
+            padding: "16px",
+            position: "sticky",
+            top: "20px",
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
-            gap: "16px"
+            gap: "6px"
           }}
         >
-          <p style={{ color: "#aaa", fontSize: "16px", margin: 0 }}>You haven't created any code snippets yet.</p>
           <button
-            onClick={() => navigate("/create-snippet")}
+            onClick={() => setActiveTab("mySnippets")}
             style={{
-              display: "inline-flex",
+              display: "flex",
               alignItems: "center",
-              gap: "8px",
-              padding: "10px 18px",
-              backgroundColor: "#646cff",
-              color: "#ffffff",
-              border: "none",
+              gap: "10px",
+              width: "100%",
+              padding: "10px 14px",
               borderRadius: "6px",
+              border: "none",
+              backgroundColor: activeTab === "mySnippets" ? "#646cff" : "transparent",
+              color: activeTab === "mySnippets" ? "#ffffff" : "#9ca3af",
               cursor: "pointer",
-              fontWeight: "600",
-              fontSize: "15px"
+              fontSize: "14px",
+              fontWeight: activeTab === "mySnippets" ? "600" : "400",
+              textAlign: "left",
+              transition: "all 0.15s ease"
             }}
           >
-            <Plus size={18} /> Create Post
+            <FileCode2 size={18} />
+            <span>My Snippets</span>
           </button>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          {mySnippets.map((s) => (
-            <div 
-              key={s.id} 
-              style={{ 
-                backgroundColor: "#1b1c22", 
-                border: "1px solid #2e303a", 
-                borderRadius: "10px", 
-                padding: "20px", 
-                textAlign: "left" 
-              }}
-            >
-              {editingId === s.id ? (
-                /* EDIT SNIPPET FORM */
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                    <div>
-                      <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#f3f4f6", fontSize: "13px" }}>
-                        Title *
-                      </label>
-                      <input 
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          borderRadius: "6px",
-                          border: "1px solid #2e303a",
-                          backgroundColor: "#121212",
-                          color: "#ffffff",
-                          fontSize: "14px",
-                          outline: "none",
-                          boxSizing: "border-box"
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#f3f4f6", fontSize: "13px" }}>
-                        Language
-                      </label>
-                      <input 
-                        type="text"
-                        value={editLanguage}
-                        onChange={(e) => setEditLanguage(e.target.value)}
-                        placeholder="e.g. JavaScript, Python"
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          borderRadius: "6px",
-                          border: "1px solid #2e303a",
-                          backgroundColor: "#121212",
-                          color: "#ffffff",
-                          fontSize: "14px",
-                          outline: "none",
-                          boxSizing: "border-box"
-                        }}
-                      />
-                    </div>
-                  </div>
 
-                  <div>
-                    <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#f3f4f6", fontSize: "13px" }}>
-                      Description
-                    </label>
-                    <input 
-                      type="text"
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: "6px",
-                        border: "1px solid #2e303a",
-                        backgroundColor: "#121212",
-                        color: "#ffffff",
-                        fontSize: "14px",
-                        outline: "none",
-                        boxSizing: "border-box"
-                      }}
-                    />
-                  </div>
+          <button
+            onClick={() => setActiveTab("liked")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              width: "100%",
+              padding: "10px 14px",
+              borderRadius: "6px",
+              border: "none",
+              backgroundColor: activeTab === "liked" ? "#646cff" : "transparent",
+              color: activeTab === "liked" ? "#ffffff" : "#9ca3af",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: activeTab === "liked" ? "600" : "400",
+              textAlign: "left",
+              transition: "all 0.15s ease"
+            }}
+          >
+            <Heart size={18} />
+            <span>Liked Posts</span>
+          </button>
 
-                  <div>
-                    <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#f3f4f6", fontSize: "13px" }}>
-                      Problem Statement (Optional)
-                    </label>
-                    <textarea 
-                      value={editProblem}
-                      onChange={(e) => setEditProblem(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        height: "70px",
-                        borderRadius: "6px",
-                        border: "1px solid #2e303a",
-                        backgroundColor: "#121212",
-                        color: "#ffffff",
-                        fontSize: "14px",
-                        resize: "vertical",
-                        outline: "none",
-                        boxSizing: "border-box"
-                      }}
-                    />
-                  </div>
+          <button
+            onClick={() => setActiveTab("commented")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              width: "100%",
+              padding: "10px 14px",
+              borderRadius: "6px",
+              border: "none",
+              backgroundColor: activeTab === "commented" ? "#646cff" : "transparent",
+              color: activeTab === "commented" ? "#ffffff" : "#9ca3af",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: activeTab === "commented" ? "600" : "400",
+              textAlign: "left",
+              transition: "all 0.15s ease"
+            }}
+          >
+            <MessageSquare size={18} />
+            <span>Commented Posts</span>
+          </button>
 
-                  <div>
-                    <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#f3f4f6", fontSize: "13px" }}>
-                      Code *
-                    </label>
-                    <textarea 
-                      value={editCode}
-                      onChange={(e) => setEditCode(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "12px",
-                        height: "180px",
-                        borderRadius: "6px",
-                        border: "1px solid #2e303a",
-                        backgroundColor: "#121212",
-                        color: "#ffffff",
-                        fontSize: "14px",
-                        fontFamily: "ui-monospace, Consolas, monospace",
-                        resize: "vertical",
-                        outline: "none",
-                        boxSizing: "border-box"
-                      }}
-                    />
-                  </div>
+          <button
+            onClick={() => setActiveTab("saved")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              width: "100%",
+              padding: "10px 14px",
+              borderRadius: "6px",
+              border: "none",
+              backgroundColor: activeTab === "saved" ? "#646cff" : "transparent",
+              color: activeTab === "saved" ? "#ffffff" : "#9ca3af",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: activeTab === "saved" ? "600" : "400",
+              textAlign: "left",
+              transition: "all 0.15s ease"
+            }}
+          >
+            <Bookmark size={18} />
+            <span>Saved Posts</span>
+          </button>
 
-                  <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "4px" }}>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      disabled={updating}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "8px 16px",
-                        backgroundColor: "transparent",
-                        border: "1px solid #2e303a",
-                        color: "#ffffff",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        fontSize: "14px"
-                      }}
-                    >
-                      <X size={16} /> Cancel
-                    </button>
-                    <button
-                      onClick={() => handleSaveSnippet(s.id)}
-                      disabled={updating}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "8px 16px",
-                        backgroundColor: "#646cff",
-                        border: "none",
-                        color: "#ffffff",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        fontWeight: "600",
-                        fontSize: "14px",
-                        opacity: updating ? 0.7 : 1
-                      }}
-                    >
-                      <Check size={16} /> {updating ? "Saving..." : "Save Changes"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* READ-ONLY SNIPPET DISPLAY */
-                <>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
-                    <div>
-                      <h3 style={{ margin: "0 0 6px 0", fontSize: "20px", color: "#f3f4f6" }}>{s.title}</h3>
-                      {s.language && (
-                        <span style={{ backgroundColor: "#2e303a", color: "#646cff", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "600" }}>
-                          {s.language}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button
-                        onClick={() => startEditingSnippet(s)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          backgroundColor: "#2e303a",
-                          border: "none",
-                          borderRadius: "6px",
-                          padding: "6px 12px",
-                          color: "#ffffff",
-                          cursor: "pointer",
-                          fontSize: "13px",
-                          fontWeight: "500"
-                        }}
-                        title="Edit snippet"
-                      >
-                        <Edit2 size={14} /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSnippet(s.id)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          backgroundColor: "#e63946",
-                          border: "none",
-                          borderRadius: "6px",
-                          padding: "6px 12px",
-                          color: "#ffffff",
-                          cursor: "pointer",
-                          fontSize: "13px",
-                          fontWeight: "500"
-                        }}
-                        title="Delete snippet"
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </div>
-                  </div>
+          <button
+            onClick={() => setActiveTab("privacy")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              width: "100%",
+              padding: "10px 14px",
+              borderRadius: "6px",
+              border: "none",
+              backgroundColor: activeTab === "privacy" ? "#646cff" : "transparent",
+              color: activeTab === "privacy" ? "#ffffff" : "#9ca3af",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: activeTab === "privacy" ? "600" : "400",
+              textAlign: "left",
+              transition: "all 0.15s ease"
+            }}
+          >
+            <ShieldCheck size={18} />
+            <span>Privacy Policy</span>
+          </button>
 
-                  {s.description && (
-                    <p style={{ margin: "8px 0 12px 0", color: "#9ca3af", fontSize: "15px" }}>{s.description}</p>
-                  )}
+          <div style={{ height: "1px", backgroundColor: "#2e303a", margin: "10px 0" }} />
 
-                  {s.problem && (
-                    <div style={{ backgroundColor: "#121212", border: "1px solid #2e303a", padding: "10px 14px", borderRadius: "6px", marginBottom: "12px", fontSize: "14px", color: "#d1d5db" }}>
-                      <strong style={{ color: "#646cff" }}>Problem:</strong> {s.problem}
-                    </div>
-                  )}
+          {/* Logout Option at the End */}
+          <button
+            onClick={handleLogout}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              width: "100%",
+              padding: "10px 14px",
+              borderRadius: "6px",
+              border: "none",
+              backgroundColor: "rgba(230, 57, 70, 0.1)",
+              color: "#ff6b6b",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "600",
+              textAlign: "left",
+              transition: "all 0.15s ease"
+            }}
+          >
+            <LogOut size={18} />
+            <span>Logout</span>
+          </button>
+        </aside>
 
-                  <pre style={{ backgroundColor: "#121212", border: "1px solid #2e303a", padding: "14px", borderRadius: "6px", overflowX: "auto", fontFamily: "ui-monospace, Consolas, monospace", margin: 0, fontSize: "14px", color: "#e5e7eb" }}>
-                    <code>{s.code}</code>
-                  </pre>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
