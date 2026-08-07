@@ -1,5 +1,6 @@
 .profile-wrapper {
   width: 100%;
+  max-width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 24px;
@@ -82,9 +83,9 @@
 /* Layout Grid */
 .profile-content-grid {
   display: grid;
-  grid-template-columns: 1fr 240px;
+  grid-template-columns: 1fr 240px; /* Adjust sidebar ratio here if needed, e.g., 1fr 300px */
   gap: 24px;
-  align-items: start;
+  align-items: start; /* Prevents card height stretching */
 }
 
 .main-content {
