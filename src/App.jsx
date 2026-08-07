@@ -18,6 +18,7 @@ export default function App() {
             <Route path="/setup-profile" element={<ProtectedRoute><SetupProfile /></ProtectedRoute>} />
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/create" element={<ProtectedRoute><CreateSnippet /></ProtectedRoute>} />
             <Route path="/create-snippet" element={<ProtectedRoute><CreateSnippet /></ProtectedRoute>} />
           </Routes>
         </HashRouter>
