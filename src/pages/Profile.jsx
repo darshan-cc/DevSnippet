@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User, Edit2, Check, X, AlertCircle } from "lucide-react";
+import { ArrowLeft, LogOut, User, Edit2, Check, X, AlertCircle, Trash2 } from "lucide-react";
 
 export default function Profile() {
   const { currentUser, userProfile, logout } = useAuth();
@@ -54,7 +54,7 @@ export default function Profile() {
     navigate("/login");
   };
 
-  // --- Instagram Username Validation Rule ---
+  // --- Username Validation ---
   const validateUsername = (value) => {
     const val = value.trim();
     if (!val) return "Username is required.";
@@ -73,7 +73,7 @@ export default function Profile() {
     return "";
   };
 
-  // --- Profile Edit Handlers ---
+  // --- Profile Handlers ---
   const startEditingProfile = () => {
     setProfileUsername(userProfile?.displayName || currentUser?.displayName || "");
     setProfileBio(userProfile?.bio || "");
@@ -95,7 +95,6 @@ export default function Profile() {
     try {
       const currentName = (userProfile?.displayName || "").toLowerCase();
 
-      // Check username uniqueness if changed
       if (cleanUsername !== currentName) {
         const usersRef = collection(db, "users");
         const q = query(usersRef, where("displayName", "==", cleanUsername));
@@ -110,7 +109,6 @@ export default function Profile() {
         }
       }
 
-      // Update Firestore user document
       const userRef = doc(db, "users", currentUser.uid);
       await updateDoc(userRef, {
         displayName: cleanUsername,
@@ -118,7 +116,6 @@ export default function Profile() {
         updatedAt: new Date().toISOString()
       });
 
-      // Update local context reference
       if (userProfile) {
         userProfile.displayName = cleanUsername;
         userProfile.bio = profileBio.trim();
@@ -133,7 +130,7 @@ export default function Profile() {
     }
   };
 
-  // --- Snippet Edit Handlers ---
+  // --- Snippet Handlers ---
   const startEditingSnippet = (s) => {
     setEditingId(s.id);
     setEditTitle(s.title || "");
@@ -171,9 +168,22 @@ export default function Profile() {
     }
   };
 
+  const handleDeleteSnippet = async (snippetId) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this snippet? This action cannot be undone.");
+    if (!confirmDelete) return;
+
+    try {
+      await deleteDoc(doc(db, "snippets", snippetId));
+      setMySnippets((prev) => prev.filter((item) => item.id !== snippetId));
+    } catch (error) {
+      console.error("Error deleting snippet:", error);
+      alert("Failed to delete snippet. Please try again.");
+    }
+  };
+
   return (
     <div style={{ width: "100%", maxWidth: "1200px", margin: "0 auto", padding: "30px 20px", boxSizing: "border-box" }}>
-      {/* Back to Home Button - Aligned Left */}
+      {/* Back Button */}
       <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: "24px" }}>
         <button 
           onClick={() => navigate("/")} 
@@ -324,7 +334,7 @@ export default function Profile() {
             </div>
           </div>
         ) : (
-          /* VIEW PROFILE READ-ONLY */
+          /* READ-ONLY PROFILE */
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -385,7 +395,7 @@ export default function Profile() {
         )}
       </div>
 
-      {/* My Snippets List */}
+      {/* Snippets List */}
       <h3 style={{ textAlign: "left", marginBottom: "20px", fontSize: "20px", color: "#f3f4f6" }}>
         My Snippets ({mySnippets.length})
       </h3>
@@ -580,25 +590,46 @@ export default function Profile() {
                         </span>
                       )}
                     </div>
-                    <button
-                      onClick={() => startEditingSnippet(s)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        backgroundColor: "#2e303a",
-                        border: "none",
-                        borderRadius: "6px",
-                        padding: "6px 12px",
-                        color: "#ffffff",
-                        cursor: "pointer",
-                        fontSize: "13px",
-                        fontWeight: "500"
-                      }}
-                      title="Edit snippet"
-                    >
-                      <Edit2 size={14} /> Edit
-                    </button>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        onClick={() => startEditingSnippet(s)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          backgroundColor: "#2e303a",
+                          border: "none",
+                          borderRadius: "6px",
+                          padding: "6px 12px",
+                          color: "#ffffff",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          fontWeight: "500"
+                        }}
+                        title="Edit snippet"
+                      >
+                        <Edit2 size={14} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSnippet(s.id)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          backgroundColor: "#e63946",
+                          border: "none",
+                          borderRadius: "6px",
+                          padding: "6px 12px",
+                          color: "#ffffff",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          fontWeight: "500"
+                        }}
+                        title="Delete snippet"
+                      >
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </div>
                   </div>
 
                   {s.description && (
