@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { Settings, Plus, Code2, Copy, Check, Terminal, FileCode, Layers } from "lucide-react";
+import { Settings, Plus, Code2, Copy, Check, Terminal, FileCode, Layers, User, Users } from "lucide-react";
 
 const LANGUAGES = [
   "All",
@@ -37,6 +37,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState("All");
+  const [selectedUser, setSelectedUser] = useState("All");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -62,13 +63,32 @@ export default function Home() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Filter snippets based on chosen language
-  const filteredSnippets = selectedLanguage === "All"
-    ? snippets
-    : snippets.filter((s) => s.language?.toLowerCase() === selectedLanguage.toLowerCase());
+  // Extract unique authors from fetched snippets
+  const uniqueUsers = Array.from(
+    snippets.reduce((map, snippet) => {
+      const key = snippet.userId || snippet.authorName;
+      if (key && !map.has(key)) {
+        map.set(key, snippet.authorName || "Anonymous");
+      }
+      return map;
+    }, new Map())
+  );
+
+  // Filter snippets based on chosen language AND chosen user
+  const filteredSnippets = snippets.filter((s) => {
+    const matchesLanguage =
+      selectedLanguage === "All" ||
+      s.language?.toLowerCase() === selectedLanguage.toLowerCase();
+
+    const snippetUserKey = s.userId || s.authorName;
+    const matchesUser =
+      selectedUser === "All" || snippetUserKey === selectedUser;
+
+    return matchesLanguage && matchesUser;
+  });
 
   return (
-    <div style={{ width: "100%", maxWidth: "1200px", margin: "0 auto", padding: "30px 20px", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", maxWidth: "1280px", margin: "0 auto", padding: "30px 20px", boxSizing: "border-box" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -114,8 +134,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Main Layout Grid (Sidebar + Feed) */}
-      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: "24px", alignItems: "start" }}>
+      {/* Main Layout Grid (Left Sidebar + Feed + Right Sidebar) */}
+      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr 220px", gap: "20px", alignItems: "start" }}>
         
         {/* Left Sidebar - Language Filter */}
         <aside 
@@ -174,16 +194,14 @@ export default function Home() {
           </div>
         </aside>
 
-        {/* Right Feed - Snippet List */}
+        {/* Center - Feed */}
         <main style={{ minWidth: 0 }}>
           {loading ? (
             <p style={{ textAlign: "left", color: "#aaa" }}>Loading snippets...</p>
           ) : filteredSnippets.length === 0 ? (
             <div style={{ backgroundColor: "#1b1c22", border: "1px solid #2e303a", borderRadius: "12px", padding: "40px", textAlign: "center" }}>
               <p style={{ color: "#aaa", fontSize: "16px" }}>
-                {selectedLanguage === "All" 
-                  ? "No snippets posted yet. Click '+ Code' to share the first one!" 
-                  : `No snippets found for ${selectedLanguage}.`}
+                No snippets found matching your current filter criteria.
               </p>
             </div>
           ) : (
@@ -263,6 +281,84 @@ export default function Home() {
             </div>
           )}
         </main>
+
+        {/* Right Sidebar - Read-Only Users List */}
+        <aside 
+          style={{ 
+            backgroundColor: "#1b1c22", 
+            border: "1px solid #2e303a", 
+            borderRadius: "12px", 
+            padding: "16px",
+            position: "sticky",
+            top: "20px",
+            maxHeight: "calc(100vh - 120px)",
+            overflowY: "auto",
+            textAlign: "left"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid #2e303a" }}>
+            <Users size={18} color="#646cff" />
+            <h3 style={{ margin: 0, fontSize: "16px", color: "#f3f4f6" }}>Users</h3>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <button
+              onClick={() => setSelectedUser("All")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "none",
+                backgroundColor: selectedUser === "All" ? "#646cff" : "transparent",
+                color: selectedUser === "All" ? "#ffffff" : "#9ca3af",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: selectedUser === "All" ? "600" : "400",
+                textAlign: "left",
+                transition: "all 0.15s ease"
+              }}
+            >
+              <Users size={15} />
+              <span>All Users</span>
+            </button>
+
+            {uniqueUsers.map(([userKey, userName]) => {
+              const isActive = selectedUser === userKey;
+              return (
+                <button
+                  key={userKey}
+                  onClick={() => setSelectedUser(userKey)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    width: "100%",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    border: "none",
+                    backgroundColor: isActive ? "#646cff" : "transparent",
+                    color: isActive ? "#ffffff" : "#9ca3af",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: isActive ? "600" : "400",
+                    textAlign: "left",
+                    transition: "all 0.15s ease"
+                  }}
+                  title={`View posts by ${userName}`}
+                >
+                  <User size={15} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {userName}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
       </div>
     </div>
   );
