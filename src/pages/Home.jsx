@@ -4,35 +4,14 @@ import { db, auth } from "../firebase";
 import { collection, getDocs, query, orderBy, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { 
   Settings, Plus, Code2, Copy, Check, Terminal, FileCode, 
-  Layers, User, Users, Heart, MessageSquare, Bookmark, Send 
+  Layers, User, Users, Heart, MessageSquare, Bookmark, Send, Sun, Moon 
 } from "lucide-react";
+import "./Home.css";
 
 const LANGUAGES = [
-  "All",
-  "C++",
-  "C#",
-  "CSS",
-  "Dart",
-  "Dockerfile",
-  "F#",
-  "Go",
-  "HTML",
-  "Java",
-  "JavaScript",
-  "JSON",
-  "Julia",
-  "Less",
-  "Markdown",
-  "PHP",
-  "PowerShell",
-  "Python",
-  "R",
-  "Ruby",
-  "Rust",
-  "SCSS",
-  "Swift",
-  "T-SQL",
-  "TypeScript"
+  "All", "C++", "C#", "CSS", "Dart", "Dockerfile", "F#", "Go", "HTML", 
+  "Java", "JavaScript", "JSON", "Julia", "Less", "Markdown", "PHP", 
+  "PowerShell", "Python", "R", "Ruby", "Rust", "SCSS", "Swift", "T-SQL", "TypeScript"
 ];
 
 export default function Home() {
@@ -41,13 +20,17 @@ export default function Home() {
   const [copiedId, setCopiedId] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState("All");
   const [selectedUser, setSelectedUser] = useState("All");
+  const [theme, setTheme] = useState("dark");
   
-  // Interaction States
   const [activeCommentId, setActiveCommentId] = useState(null);
   const [commentText, setCommentText] = useState("");
 
   const navigate = useNavigate();
   const currentUser = auth.currentUser;
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     const fetchSnippets = async () => {
@@ -66,13 +49,18 @@ export default function Home() {
     fetchSnippets();
   }, []);
 
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
+  const isDark = theme === "dark";
+
   const handleCopy = (id, codeText) => {
     navigator.clipboard.writeText(codeText);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Like / Unlike Handler
   const handleToggleLike = async (snippet) => {
     const userId = currentUser?.uid || "anonymous_user";
     const likesList = snippet.likes || [];
@@ -82,7 +70,6 @@ export default function Home() {
       ? likesList.filter((id) => id !== userId)
       : [...likesList, userId];
 
-    // Optimistic UI update
     setSnippets((prev) =>
       prev.map((s) => (s.id === snippet.id ? { ...s, likes: updatedLikes } : s))
     );
@@ -97,7 +84,6 @@ export default function Home() {
     }
   };
 
-  // Save / Bookmark Handler
   const handleToggleSave = async (snippet) => {
     const userId = currentUser?.uid || "anonymous_user";
     const savedByList = snippet.savedBy || [];
@@ -107,7 +93,6 @@ export default function Home() {
       ? savedByList.filter((id) => id !== userId)
       : [...savedByList, userId];
 
-    // Optimistic UI update
     setSnippets((prev) =>
       prev.map((s) => (s.id === snippet.id ? { ...s, savedBy: updatedSavedBy } : s))
     );
@@ -122,7 +107,6 @@ export default function Home() {
     }
   };
 
-  // Add Comment Handler
   const handleAddComment = async (snippetId) => {
     if (!commentText.trim()) return;
 
@@ -133,7 +117,6 @@ export default function Home() {
       createdAt: new Date().toISOString()
     };
 
-    // Optimistic UI update
     setSnippets((prev) =>
       prev.map((s) =>
         s.id === snippetId
@@ -154,7 +137,6 @@ export default function Home() {
     }
   };
 
-  // Extract unique authors
   const uniqueUsers = Array.from(
     snippets.reduce((map, snippet) => {
       const key = snippet.userId || snippet.authorName;
@@ -165,7 +147,6 @@ export default function Home() {
     }, new Map())
   );
 
-  // Filter snippets based on language and user selection
   const filteredSnippets = snippets.filter((s) => {
     const matchesLanguage =
       selectedLanguage === "All" ||
@@ -181,104 +162,54 @@ export default function Home() {
   const userId = currentUser?.uid || "anonymous_user";
 
   return (
-    <div style={{ width: "100%", maxWidth: "1280px", margin: "0 auto", padding: "30px 20px", boxSizing: "border-box" }}>
+    <div className="home-container">
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Code2 size={32} color="#646cff" />
-          <h1 style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>DevSnippet</h1>
+      <header className="home-header">
+        <div className="logo-group">
+          <Code2 size={36} />
+          <h1 className="logo-title">DevSnippet</h1>
         </div>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <button 
-            onClick={() => navigate("/create-snippet")} 
-            style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "6px", 
-              padding: "10px 18px", 
-              cursor: "pointer", 
-              backgroundColor: "#646cff", 
-              color: "#ffffff", 
-              border: "none", 
-              borderRadius: "6px", 
-              fontSize: "15px",
-              fontWeight: "600"
-            }}
-          >
-            <Plus size={18} /> Code
+
+        <div className="header-actions">
+          <button onClick={toggleTheme} className="btn-brutal">
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            <span>[THEME: {theme.toUpperCase()}]</span>
           </button>
-          <button 
-            onClick={() => navigate("/profile")} 
-            style={{ 
-              background: "none", 
-              border: "1px solid #2e303a", 
-              borderRadius: "6px",
-              padding: "8px",
-              cursor: "pointer", 
-              color: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }} 
-            title="Profile & Settings"
-          >
+
+          <button onClick={() => navigate("/create-snippet")} className="btn-brutal btn-brutal-primary">
+            <Plus size={18} /> Create Post
+          </button>
+
+          <button onClick={() => navigate("/profile")} className="btn-brutal btn-brutal-icon" title="Profile & Settings">
             <Settings size={20} />
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Layout Grid (Left Sidebar + Feed + Right Sidebar) */}
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr 220px", gap: "20px", alignItems: "start" }}>
-        
-        {/* Left Sidebar - Language Filter */}
-        <aside 
-          style={{ 
-            backgroundColor: "#1b1c22", 
-            border: "1px solid #2e303a", 
-            borderRadius: "12px", 
-            padding: "16px",
-            position: "sticky",
-            top: "20px",
-            maxHeight: "calc(100vh - 120px)",
-            overflowY: "auto",
-            textAlign: "left"
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid #2e303a" }}>
-            <Layers size={18} color="#646cff" />
-            <h3 style={{ margin: 0, fontSize: "16px", color: "#f3f4f6" }}>Languages</h3>
+      {/* Main Layout */}
+      <div className="main-grid">
+        {/* Left Sidebar - Languages */}
+        <aside className="sidebar">
+          <div className="sidebar-header">
+            <Layers size={18} />
+            <h3 className="sidebar-title">Languages</h3>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div className="sidebar-list">
             {LANGUAGES.map((lang) => {
               const isActive = selectedLanguage.toLowerCase() === lang.toLowerCase();
               return (
                 <button
                   key={lang}
                   onClick={() => setSelectedLanguage(lang)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    width: "100%",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "none",
-                    backgroundColor: isActive ? "#646cff" : "transparent",
-                    color: isActive ? "#ffffff" : "#9ca3af",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    fontWeight: isActive ? "600" : "400",
-                    textAlign: "left",
-                    transition: "all 0.15s ease"
-                  }}
+                  className={`sidebar-btn ${isActive ? "active" : ""}`}
                 >
                   {lang === "All" ? (
-                    <Layers size={15} />
+                    <Layers size={14} />
                   ) : lang === "Dockerfile" || lang === "PowerShell" || lang === "T-SQL" ? (
-                    <Terminal size={15} />
+                    <Terminal size={14} />
                   ) : (
-                    <FileCode size={15} />
+                    <FileCode size={14} />
                   )}
                   <span>{lang}</span>
                 </button>
@@ -288,208 +219,106 @@ export default function Home() {
         </aside>
 
         {/* Center - Feed */}
-        <main style={{ minWidth: 0 }}>
+        <main className="feed-container">
           {loading ? (
-            <p style={{ textAlign: "left", color: "#aaa" }}>Loading snippets...</p>
+            <p className="loading-text">Loading snippets...</p>
           ) : filteredSnippets.length === 0 ? (
-            <div style={{ backgroundColor: "#1b1c22", border: "1px solid #2e303a", borderRadius: "12px", padding: "40px", textAlign: "center" }}>
-              <p style={{ color: "#aaa", fontSize: "16px" }}>
-                No snippets found matching your current filter criteria.
-              </p>
+            <div className="empty-state">
+              <p className="empty-text">NO SNIPPETS FOUND FOR SELECTED CRITERIA.</p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div className="snippet-list">
               {filteredSnippets.map((s) => {
                 const isLiked = (s.likes || []).includes(userId);
                 const isSaved = (s.savedBy || []).includes(userId);
                 const comments = s.comments || [];
 
                 return (
-                  <div 
-                    key={s.id} 
-                    style={{ 
-                      backgroundColor: "#1b1c22", 
-                      border: "1px solid #2e303a", 
-                      borderRadius: "10px", 
-                      padding: "20px", 
-                      textAlign: "left" 
-                    }}
-                  >
+                  <div key={s.id} className="snippet-card">
                     {/* Snippet Header */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <h3 style={{ margin: 0, fontSize: "20px", color: "#f3f4f6" }}>{s.title}</h3>
+                    <div className="snippet-header">
+                      <div className="snippet-title-group">
+                        <h3 className="snippet-title">{s.title}</h3>
                         {s.language && (
-                          <span style={{ backgroundColor: "#2e303a", color: "#646cff", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "600" }}>
-                            {s.language}
-                          </span>
+                          <span className="snippet-lang-tag">{s.language}</span>
                         )}
                       </div>
-                      <span style={{ color: "#888", fontSize: "14px" }}>by <strong style={{ color: "#aaa" }}>{s.authorName}</strong></span>
+                      <span className="snippet-author">
+                        BY <strong>{s.authorName}</strong>
+                      </span>
                     </div>
 
-                    {s.description && (
-                      <p style={{ margin: "0 0 12px 0", color: "#9ca3af", fontSize: "15px" }}>{s.description}</p>
-                    )}
+                    {s.description && <p className="snippet-desc">{s.description}</p>}
 
                     {s.problem && (
-                      <div style={{ backgroundColor: "#121212", border: "1px solid #2e303a", padding: "10px 14px", borderRadius: "6px", marginBottom: "12px", fontSize: "14px", color: "#d1d5db" }}>
-                        <strong style={{ color: "#646cff" }}>Problem:</strong> {s.problem}
+                      <div className="snippet-problem">
+                        <strong>Problem:</strong> {s.problem}
                       </div>
                     )}
 
                     {/* Code Container */}
-                    <div style={{ position: "relative" }}>
-                      <button
-                        onClick={() => handleCopy(s.id, s.code)}
-                        style={{
-                          position: "absolute",
-                          top: "10px",
-                          right: "10px",
-                          backgroundColor: "#2e303a",
-                          border: "none",
-                          borderRadius: "6px",
-                          padding: "6px 12px",
-                          color: "#ffffff",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          fontSize: "13px",
-                          fontWeight: "500",
-                          zIndex: 10
-                        }}
-                        title="Copy code to clipboard"
-                      >
+                    <div className="code-container">
+                      <button onClick={() => handleCopy(s.id, s.code)} className="btn-copy">
                         {copiedId === s.id ? (
                           <>
-                            <Check size={14} color="#4ade80" /> Copied!
+                            <Check size={14} /> COPIED!
                           </>
                         ) : (
                           <>
-                            <Copy size={14} /> Copy
+                            <Copy size={14} /> COPY
                           </>
                         )}
                       </button>
 
-                      <pre style={{ backgroundColor: "#121212", border: "1px solid #2e303a", padding: "16px", paddingRight: "90px", borderRadius: "6px", overflowX: "auto", fontFamily: "ui-monospace, Consolas, monospace", margin: 0, fontSize: "14px", color: "#e5e7eb" }}>
+                      <pre className="code-block">
                         <code>{s.code}</code>
                       </pre>
                     </div>
 
-                    {/* Interaction Bar (Like, Comment, Save) */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", paddingTop: "12px", borderTop: "1px solid #2e303a" }}>
-                      <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-                        {/* Like Button */}
-                        <button
-                          onClick={() => handleToggleLike(s)}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            background: "none",
-                            border: "none",
-                            color: isLiked ? "#ef4444" : "#9ca3af",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            padding: 0
-                          }}
-                        >
-                          <Heart size={18} fill={isLiked ? "#ef4444" : "none"} color={isLiked ? "#ef4444" : "#9ca3af"} />
-                          <span>{(s.likes || []).length}</span>
+                    {/* Interaction Bar */}
+                    <div className="interaction-bar">
+                      <div className="left-interactions">
+                        <button onClick={() => handleToggleLike(s)} className="btn-action">
+                          <Heart size={18} fill={isLiked ? "currentColor" : "none"} color="currentColor" />
+                          <span>{s.likes?.length || 0}</span>
                         </button>
 
-                        {/* Comment Button */}
-                        <button
-                          onClick={() => setActiveCommentId(activeCommentId === s.id ? null : s.id)}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            background: "none",
-                            border: "none",
-                            color: activeCommentId === s.id ? "#646cff" : "#9ca3af",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                            padding: 0
-                          }}
-                        >
+                        <button onClick={() => setActiveCommentId(activeCommentId === s.id ? null : s.id)} className="btn-action">
                           <MessageSquare size={18} />
                           <span>{comments.length}</span>
                         </button>
                       </div>
 
-                      {/* Save Button */}
-                      <button
-                        onClick={() => handleToggleSave(s)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          background: "none",
-                          border: "none",
-                          color: isSaved ? "#646cff" : "#9ca3af",
-                          cursor: "pointer",
-                          fontSize: "14px",
-                          padding: 0
-                        }}
-                      >
-                        <Bookmark size={18} fill={isSaved ? "#646cff" : "none"} color={isSaved ? "#646cff" : "#9ca3af"} />
-                        <span>{isSaved ? "Saved" : "Save"}</span>
+                      <button onClick={() => handleToggleSave(s)} className="btn-action">
+                        <Bookmark size={18} fill={isSaved ? "currentColor" : "none"} color="currentColor" />
+                        <span>{isSaved ? "SAVED" : "SAVE"}</span>
                       </button>
                     </div>
 
-                    {/* Expandable Comments Drawer */}
+                    {/* Comments Section */}
                     {activeCommentId === s.id && (
-                      <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #2e303a" }}>
+                      <div className="comments-section">
                         {comments.length > 0 && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "14px" }}>
+                          <div className="comments-list">
                             {comments.map((c) => (
-                              <div key={c.id} style={{ backgroundColor: "#121212", border: "1px solid #2e303a", borderRadius: "6px", padding: "10px 12px" }}>
-                                <div style={{ fontSize: "12px", color: "#646cff", fontWeight: "600", marginBottom: "4px" }}>
-                                  {c.authorName}
-                                </div>
-                                <div style={{ fontSize: "14px", color: "#d1d5db" }}>
-                                  {c.text}
-                                </div>
+                              <div key={c.id} className="comment-card">
+                                <div className="comment-author">{c.authorName}</div>
+                                <div className="comment-text">{c.text}</div>
                               </div>
                             ))}
                           </div>
                         )}
 
-                        {/* New Comment Input */}
-                        <div style={{ display: "flex", gap: "8px" }}>
+                        <div className="comment-input-group">
                           <input
                             type="text"
-                            placeholder="Add a comment..."
+                            placeholder="ADD A COMMENT..."
                             value={commentText}
                             onChange={(e) => setCommentText(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleAddComment(s.id)}
-                            style={{
-                              flex: 1,
-                              backgroundColor: "#121212",
-                              border: "1px solid #2e303a",
-                              borderRadius: "6px",
-                              padding: "8px 12px",
-                              color: "#ffffff",
-                              fontSize: "14px",
-                              outline: "none"
-                            }}
+                            className="comment-input"
                           />
-                          <button
-                            onClick={() => handleAddComment(s.id)}
-                            style={{
-                              backgroundColor: "#646cff",
-                              color: "#ffffff",
-                              border: "none",
-                              borderRadius: "6px",
-                              padding: "8px 14px",
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center"
-                            }}
-                          >
+                          <button onClick={() => handleAddComment(s.id)} className="btn-brutal btn-brutal-primary">
                             <Send size={16} />
                           </button>
                         </div>
@@ -502,47 +331,20 @@ export default function Home() {
           )}
         </main>
 
-        {/* Right Sidebar - Read-Only Users List */}
-        <aside 
-          style={{ 
-            backgroundColor: "#1b1c22", 
-            border: "1px solid #2e303a", 
-            borderRadius: "12px", 
-            padding: "16px",
-            position: "sticky",
-            top: "20px",
-            maxHeight: "calc(100vh - 120px)",
-            overflowY: "auto",
-            textAlign: "left"
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid #2e303a" }}>
-            <Users size={18} color="#646cff" />
-            <h3 style={{ margin: 0, fontSize: "16px", color: "#f3f4f6" }}>Users</h3>
+        {/* Right Sidebar - Users List */}
+        <aside className="sidebar">
+          <div className="sidebar-header">
+            <Users size={18} />
+            <h3 className="sidebar-title">Users</h3>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div className="sidebar-list">
             <button
               onClick={() => setSelectedUser("All")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                width: "100%",
-                padding: "8px 12px",
-                borderRadius: "6px",
-                border: "none",
-                backgroundColor: selectedUser === "All" ? "#646cff" : "transparent",
-                color: selectedUser === "All" ? "#ffffff" : "#9ca3af",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: selectedUser === "All" ? "600" : "400",
-                textAlign: "left",
-                transition: "all 0.15s ease"
-              }}
+              className={`sidebar-btn ${selectedUser === "All" ? "active" : ""}`}
             >
-              <Users size={15} />
-              <span>All Users</span>
+              <Users size={14} />
+              <span>ALL USERS</span>
             </button>
 
             {uniqueUsers.map(([userKey, userName]) => {
@@ -551,34 +353,15 @@ export default function Home() {
                 <button
                   key={userKey}
                   onClick={() => setSelectedUser(userKey)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    width: "100%",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "none",
-                    backgroundColor: isActive ? "#646cff" : "transparent",
-                    color: isActive ? "#ffffff" : "#9ca3af",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    fontWeight: isActive ? "600" : "400",
-                    textAlign: "left",
-                    transition: "all 0.15s ease"
-                  }}
-                  title={`View posts by ${userName}`}
+                  className={`sidebar-btn ${isActive ? "active" : ""}`}
                 >
-                  <User size={15} />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {userName}
-                  </span>
+                  <User size={14} />
+                  <span className="sidebar-user-name">{userName}</span>
                 </button>
               );
             })}
           </div>
         </aside>
-
       </div>
     </div>
   );
