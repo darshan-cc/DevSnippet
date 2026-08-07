@@ -1,28 +1,36 @@
+/* Page Wrapper */
 .profile-wrapper {
   width: 100%;
   max-width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 24px;
+  min-height: 100vh;
+  margin: 0;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
   gap: 28px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   box-sizing: border-box;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* Header Navigation */
 .profile-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
 }
 
-/* User Info Card */
+/* User Profile Card */
 .profile-card {
   border: 2px solid var(--border-color);
   background-color: var(--card-bg);
+  color: var(--text-primary);
   padding: 28px;
   width: 100%;
   box-sizing: border-box;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .profile-main-info {
@@ -36,6 +44,7 @@
   border: 2px solid var(--border-color);
   padding: 20px;
   background-color: var(--bg-secondary);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -66,6 +75,7 @@
   font-weight: 800;
   letter-spacing: 1px;
   margin: 0;
+  color: var(--text-primary);
 }
 
 .user-email {
@@ -83,15 +93,18 @@
 /* Layout Grid */
 .profile-content-grid {
   display: grid;
-  grid-template-columns: 1fr 240px; /* Adjust sidebar ratio here if needed, e.g., 1fr 300px */
+  grid-template-columns: 1fr 240px;
   gap: 24px;
-  align-items: start; /* Prevents card height stretching */
+  align-items: start;
+  width: 100%;
 }
 
 .main-content {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  width: 100%;
+  min-width: 0;
 }
 
 .section-header {
@@ -105,9 +118,10 @@
   font-weight: 800;
   letter-spacing: 1px;
   margin: 0;
+  color: var(--text-primary);
 }
 
-/* Sidebar Tabs */
+/* Sidebar Navigation Tabs */
 .sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -115,6 +129,8 @@
   border: 2px solid var(--border-color);
   padding: 12px;
   background-color: var(--card-bg);
+  position: sticky;
+  top: 24px;
 }
 
 .tab-link {
@@ -129,16 +145,17 @@
   font-size: 13px;
   cursor: pointer;
   text-align: left;
+  transition: all 0.15s ease;
 }
 
 .tab-link:hover {
   border-color: var(--border-color);
-  background-color: var(--bg-secondary);
+  background-color: var(--hover-bg);
 }
 
 .tab-link.active {
-  background-color: var(--accent-invert);
-  color: var(--accent-text-invert);
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
   border-color: var(--border-color);
 }
 
@@ -147,16 +164,19 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  width: 100%;
 }
 
 .snippet-card {
   border: 2px solid var(--border-color);
   background-color: var(--card-bg);
+  color: var(--text-primary);
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   box-sizing: border-box;
+  width: 100%;
 }
 
 .snippet-top-bar {
@@ -178,11 +198,13 @@
   font-size: 18px;
   font-weight: 700;
   margin: 0;
+  color: var(--text-primary);
 }
 
 .card-lang {
   font-weight: 800;
   font-size: 13px;
+  color: var(--text-primary);
 }
 
 .author-label {
@@ -196,6 +218,7 @@
   margin: 0;
 }
 
+/* Code Display Block */
 .code-block-wrapper {
   position: relative;
   width: 100%;
@@ -204,8 +227,9 @@
 .brutalist-code {
   background-color: var(--bg-secondary);
   border: 2px solid var(--border-color);
+  color: var(--text-primary);
   padding: 20px;
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 14px;
   line-height: 1.6;
   overflow-x: auto;
@@ -219,9 +243,11 @@
   top: 10px;
   right: 10px;
   background-color: var(--card-bg);
+  color: var(--text-primary);
   z-index: 2;
 }
 
+/* Footer & Actions */
 .snippet-footer-actions {
   display: flex;
   align-items: center;
@@ -242,23 +268,27 @@
   gap: 8px;
 }
 
-/* Forms & Brutalist Controls */
-.edit-box, .edit-snippet-form {
+/* Brutalist Inputs & Form Controls */
+.edit-box, 
+.edit-snippet-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
 }
 
 .form-group label {
   font-weight: 700;
   font-size: 12px;
+  color: var(--text-primary);
 }
 
 .brutalist-input {
@@ -268,6 +298,7 @@
   padding: 10px 12px;
   font-size: 14px;
   outline: none;
+  width: 100%;
   box-sizing: border-box;
 }
 
@@ -282,7 +313,7 @@
 
 .code-area {
   height: 160px;
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   resize: vertical;
 }
 
@@ -292,6 +323,7 @@
   justify-content: flex-end;
 }
 
+/* Brutalist Buttons */
 .brutalist-btn {
   display: inline-flex;
   align-items: center;
@@ -303,16 +335,17 @@
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .brutalist-btn:hover {
-  background-color: var(--accent-invert);
-  color: var(--accent-text-invert);
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
 }
 
 .brutalist-btn.primary {
-  background-color: var(--accent-invert);
-  color: var(--accent-text-invert);
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
 }
 
 .brutalist-btn.primary:hover {
@@ -320,10 +353,11 @@
   color: var(--text-primary);
 }
 
-.brutalist-btn.danger:hover, .brutalist-action.danger:hover {
-  background-color: #ff0000;
+.brutalist-btn.danger:hover, 
+.brutalist-action.danger:hover {
+  background-color: #ff3333;
   color: #ffffff;
-  border-color: #ff0000;
+  border-color: #ff3333;
 }
 
 .brutalist-action {
@@ -337,22 +371,30 @@
   font-weight: 700;
   font-size: 12px;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.brutalist-action:hover, .brutalist-action.active {
-  background-color: var(--accent-invert);
-  color: var(--accent-text-invert);
+.brutalist-action:hover, 
+.brutalist-action.active {
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
 }
 
+/* Banners & States */
 .error-banner {
-  border: 2px solid #ff0000;
-  color: #ff0000;
+  border: 2px solid #ff3333;
+  color: #ff3333;
   padding: 8px 12px;
   font-size: 13px;
   font-weight: 700;
+  background-color: rgba(255, 51, 51, 0.05);
 }
 
-.empty-state, .privacy-card {
+.empty-state, 
+.privacy-card {
+  border: 2px solid var(--border-color);
+  background-color: var(--card-bg);
+  color: var(--text-primary);
   padding: 40px;
   text-align: center;
   font-weight: 700;
@@ -361,10 +403,26 @@
 .loading-state {
   font-weight: 700;
   font-size: 14px;
+  color: var(--text-secondary);
 }
 
+/* Responsive Media Query */
 @media (max-width: 850px) {
   .profile-content-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .sidebar-nav {
+    position: static;
+    order: -1;
+  }
+
+  .profile-main-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-info-row {
+    flex-direction: column;
   }
 }
