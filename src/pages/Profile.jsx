@@ -375,12 +375,12 @@ export default function Profile() {
                           <button onClick={() => handleToggleLike(s)} className={`brutalist-action ${isLiked ? "active" : ""}`}>
                             <Heart size={14} /> {(s.likes || []).length}
                           </button>
-                          <button onClick={() => handleToggleSave(s)} className={`brutalist-action ${isSaved ? "active" : ""}`}>
-                            <Bookmark size={14} /> {isSaved ? "SAVED" : "SAVE"}
-                          </button>
                           <div className="comment-count">
                             <MessageSquare size={14} /> {(s.comments || []).length} COMMENTS
                           </div>
+                          <button onClick={() => handleToggleSave(s)} className={`brutalist-action save-btn ${isSaved ? "active" : ""}`}>
+                            <Bookmark size={14} /> {isSaved ? "SAVED" : "SAVE"}
+                          </button>
                         </div>
                       </>
                     )}
