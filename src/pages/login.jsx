@@ -5,43 +5,23 @@ import {
   getRedirectResult, 
   GoogleAuthProvider 
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import { Code2, AlertCircle } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 
 export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
 
-  // Check or initialize Firestore profile document
-  const handleProfileRouting = async (user) => {
-    const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userRef);
-
-    if (!userSnap.exists()) {
-      // First time login: Create profile document marked as incomplete
-      await setDoc(userRef, {
-        uid: user.uid,
-        email: user.email,
-        displayName: "",
-        bio: "",
-        isProfileComplete: false,
-        createdAt: new Date().toISOString()
-      });
-      return false; // Profile incomplete
-    }
-
-    return userSnap.data()?.isProfileComplete === true;
-  };
-
+  // Handle redirect response on mobile after returning from Google
   useEffect(() => {
     getRedirectResult(auth)
-      .then(async (result) => {
+      .then((result) => {
         if (result?.user) {
-          const isComplete = await handleProfileRouting(result.user);
-          navigate(isComplete ? "/" : "/setup-profile");
+          navigate("/");
         }
       })
       .catch((err) => {
@@ -59,11 +39,12 @@ export default function Login() {
 
     try {
       if (isMobile) {
+        // Mobile browsers block popups; use redirect instead
         await signInWithRedirect(auth, provider);
       } else {
-        const result = await signInWithPopup(auth, provider);
-        const isComplete = await handleProfileRouting(result.user);
-        navigate(isComplete ? "/" : "/setup-profile");
+        // Desktop browsers work fine with popup
+        await signInWithPopup(auth, provider);
+        navigate("/");
       }
     } catch (err) {
       console.error("Google sign in error:", err);
@@ -81,7 +62,7 @@ export default function Login() {
         justifyContent: "center", 
         minHeight: "100vh",
         width: "100%",
-        padding: "20px",
+        backgroundColor: "#050507",
         boxSizing: "border-box"
       }}
     >
@@ -89,22 +70,65 @@ export default function Login() {
         style={{ 
           width: "100%", 
           maxWidth: "400px", 
-          backgroundColor: "#1b1c22", 
-          border: "1px solid #2e303a", 
-          borderRadius: "12px", 
-          padding: "36px 32px", 
+           background: "#000000",
+          border: "1px solid #ffffff",
+           borderRadius: "16px",
+           padding: "40px 32px",
+           boxShadow: "0 20px 60px rgba(0, 0, 0, 0.8)",
           boxSizing: "border-box",
           textAlign: "center"
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "16px" }}>
-          <Code2 size={36} color="#646cff" />
-          <h1 style={{ margin: 0, fontSize: "28px", color: "#f3f4f6" }}>DevSnippet</h1>
-        </div>
+        <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    marginBottom: "16px"
+  }}
+>
+  <div
+    style={{
+      width: "40px",
+      height: "40px",
+      borderRadius: "10px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "#000000",
+      border: "1px solid #ffffff"
+    }}
+  >
+    <Code2 size={22} color="#ffffff" />
+  </div>
 
-        <p style={{ color: "#9ca3af", fontSize: "14px", marginBottom: "28px" }}>
-          Welcome! Sign in with Google to access your developer snippets.
-        </p>
+  <h1
+    style={{
+      margin: 0,
+      fontSize: "32px",
+      fontWeight: "800",
+      letterSpacing: "-0.8px",
+      color: "#ffffff",
+    }}
+  >
+    DevSnippet
+  </h1>
+</div>
+
+<p
+  style={{
+    color: "#d1d1d1",
+    fontSize: "14px",
+    lineHeight: "1.6",
+    margin: "0 0 28px",
+    maxWidth: "320px",
+    marginLeft: "auto",
+    marginRight: "auto"
+  }}
+>
+  Sign in to access, save, and share your developer snippets.
+</p>
 
         {error && (
           <div 
@@ -112,11 +136,11 @@ export default function Login() {
               display: "flex", 
               alignItems: "center", 
               gap: "8px", 
-              backgroundColor: "rgba(230, 57, 70, 0.1)", 
-              border: "1px solid #e63946", 
+              backgroundColor: "#000000",
+              border: "1px solid #ffffff", 
               borderRadius: "6px", 
               padding: "10px 12px", 
-              color: "#ff6b6b", 
+              color: "#ffffff", 
               fontSize: "13px",
               marginBottom: "20px",
               textAlign: "left"
@@ -129,22 +153,38 @@ export default function Login() {
 
         <button 
           onClick={handleGoogleLogin} 
-          disabled={loading} 
+          disabled={loading}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)} 
           style={{ 
             width: "100%",
-            padding: "12px", 
+            padding: "14px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "10px",
             fontSize: "15px", 
             fontWeight: "600", 
             cursor: loading ? "not-allowed" : "pointer", 
-            backgroundColor: "#646cff", 
-            color: "#ffffff", 
-            border: "none", 
-            borderRadius: "6px",
+            background: "#ffffff",
+            color: "#000000",
+            borderRadius: "10px",
+            boxShadow: isHovered
+           ? "0 8px 20px rgba(255, 255, 255, 0.2)"
+           : "0 4px 12px rgba(255, 255, 255, 0.1)",
+            transform: isHovered ? "translateY(-2px)" : "translateY(0)",
             opacity: loading ? 0.7 : 1,
-            transition: "all 0.2s ease"
+            transition: "transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease"
           }}
         >
-          {loading ? "Connecting..." : "Sign in with Google"}
+         {loading ? (
+  "Connecting..."
+) : (
+  <>
+    <FcGoogle size={20} />
+    <span>Sign in with Google</span>
+  </>
+)}
         </button>
       </div>
     </div>
