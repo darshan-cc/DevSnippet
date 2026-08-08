@@ -1,9 +1,8 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute({ children }) {
-  const { currentUser, userProfile, loading } = useAuth();
-  const location = useLocation();
+  const { currentUser, loading } = useAuth();
 
   if (loading) {
     return (
@@ -21,16 +20,9 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  // Send unauthenticated users to login
+  // Redirect to login if unauthenticated
   if (!currentUser) {
     return <Navigate to="/login" replace />;
-  }
-
-  const isSetupPage = location.pathname === "/setup-profile";
-
-  // Force users without a completed profile document to /setup-profile
-  if ((!userProfile || !userProfile.isProfileComplete) && !isSetupPage) {
-    return <Navigate to="/setup-profile" replace />;
   }
 
   return children;

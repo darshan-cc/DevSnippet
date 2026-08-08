@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { auth, googleProvider, db } from "../firebase";
-import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "../firebase";
+import { signOut, onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -13,13 +13,18 @@ export function AuthProvider({ children }) {
   const logout = () => signOut(auth);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      try {
-        setCurrentUser(user);
-        if (user) {
-          const userRef = doc(db, "users", user.uid);
+    let unsubscribeProfile = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+
+      if (user) {
+        const userRef = doc(db, "users", user.uid);
+
+        try {
           const userSnap = await getDoc(userRef);
 
+          // Populate standard defaults from Google Account info if new
           if (!userSnap.exists()) {
             const newUserData = {
               uid: user.uid,
@@ -27,24 +32,41 @@ export function AuthProvider({ children }) {
               email: user.email,
               photoURL: user.photoURL || "",
               bio: "",
-              isProfileComplete: true,
               createdAt: new Date().toISOString()
             };
             await setDoc(userRef, newUserData);
-            setUserProfile(newUserData);
-          } else {
-            setUserProfile(userSnap.data());
           }
-        } else {
-          setUserProfile(null);
+        } catch (error) {
+          console.error("Error initializing user document:", error);
         }
-      } catch (error) {
-        console.error("Auth state change error:", error);
-      } finally {
+
+        // Keep profile data synchronized in real-time
+        unsubscribeProfile = onSnapshot(
+          userRef,
+          (docSnap) => {
+            if (docSnap.exists()) {
+              setUserProfile(docSnap.data());
+            } else {
+              setUserProfile(null);
+            }
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Profile snapshot error:", error);
+            setLoading(false);
+          }
+        );
+      } else {
+        setUserProfile(null);
+        if (unsubscribeProfile) unsubscribeProfile();
         setLoading(false);
       }
     });
-    return unsubscribe;
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
   return (
