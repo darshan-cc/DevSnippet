@@ -1,164 +1,110 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { db } from "../firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { Settings, Plus, Code2, Copy, Check } from "lucide-react";
+import { doc, updateDoc } from "firebase/firestore";
+import { auth, db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import { Code2, User, FileText, ArrowRight } from "lucide-react";
 
-export default function Home() {
-  const [snippets, setSnippets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [copiedId, setCopiedId] = useState(null);
+export default function SetupProfile() {
+  const { setUserProfile } = useAuth();
+  const [username, setUsername] = useState("");
+  const [bio, setBio] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
+  const currentUser = auth.currentUser;
 
-  useEffect(() => {
-    const fetchSnippets = async () => {
-      try {
-        const q = query(collection(db, "snippets"), orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
-        const list = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setSnippets(list);
-      } catch (error) {
-        console.error("Error fetching snippets:", error);
-      } finally {
-        setLoading(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const cleanUsername = username.trim().toLowerCase();
+
+    if (!cleanUsername || cleanUsername.length < 3) {
+      setError("Username must be at least 3 characters long.");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      const userRef = doc(db, "users", currentUser.uid);
+      const updatedProfile = {
+        displayName: cleanUsername,
+        bio: bio.trim(),
+        isProfileComplete: true,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await updateDoc(userRef, updatedProfile);
+
+      if (setUserProfile) {
+        setUserProfile((prev) => ({ ...prev, ...updatedProfile }));
       }
-    };
 
-    fetchSnippets();
-  }, []);
-
-  const handleCopy = (id, codeText) => {
-    navigator.clipboard.writeText(codeText);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+      navigate("/");
+    } catch (err) {
+      console.error("Error setting up profile:", err);
+      setError("Failed to save profile. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={{ width: "100%", maxWidth: "1200px", margin: "0 auto", padding: "30px 20px", boxSizing: "border-box" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", padding: "20px" }}>
+      <div style={{ width: "100%", maxWidth: "450px", backgroundColor: "#1b1c22", border: "1px solid #2e303a", borderRadius: "12px", padding: "32px", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
           <Code2 size={32} color="#646cff" />
-          <h1 style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>DevSnippet</h1>
+          <h2 style={{ margin: 0, color: "#f3f4f6" }}>Setup Your Profile</h2>
         </div>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <button 
-            onClick={() => navigate("/create-snippet")} 
-            style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "6px", 
-              padding: "10px 18px", 
-              cursor: "pointer", 
-              backgroundColor: "#646cff", 
-              color: "#ffffff", 
-              border: "none", 
-              borderRadius: "6px", 
-              fontSize: "15px",
-              fontWeight: "600",
-              transition: "opacity 0.2s ease"
-            }}
+        <p style={{ color: "#9ca3af", fontSize: "14px", marginBottom: "24px" }}>
+          Choose a display username and tell other developers a bit about yourself.
+        </p>
+
+        {error && (
+          <div style={{ backgroundColor: "rgba(230, 57, 70, 0.1)", border: "1px solid #e63946", color: "#ff6b6b", padding: "10px", borderRadius: "6px", fontSize: "13px", marginBottom: "16px" }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+          <div>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", color: "#d1d5db", fontSize: "14px", marginBottom: "6px" }}>
+              <User size={16} color="#646cff" /> Username
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. dev_alex"
+              value={username}
+              onChange={(e) => setUsername(e.target.value.toLowerCase())}
+              required
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "6px", border: "1px solid #2e303a", backgroundColor: "#121212", color: "#ffffff", boxSizing: "border-box" }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", color: "#d1d5db", fontSize: "14px", marginBottom: "6px" }}>
+              <FileText size={16} color="#646cff" /> Bio
+            </label>
+            <textarea
+              placeholder="Full-stack developer building cool things..."
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              rows={3}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "6px", border: "1px solid #2e303a", backgroundColor: "#121212", color: "#ffffff", resize: "none", boxSizing: "border-box" }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", width: "100%", padding: "12px", backgroundColor: "#646cff", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "15px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer" }}
           >
-            <Plus size={18} /> Code
+            {loading ? "Saving Profile..." : <>Complete Setup <ArrowRight size={16} /></>}
           </button>
-          <button 
-            onClick={() => navigate("/profile")} 
-            style={{ 
-              background: "none", 
-              border: "1px solid #2e303a", 
-              borderRadius: "6px",
-              padding: "8px",
-              cursor: "pointer", 
-              color: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }} 
-            title="Profile & Settings"
-          >
-            <Settings size={20} />
-          </button>
-        </div>
+        </form>
       </div>
-
-      {/* Public Feed */}
-      {loading ? (
-        <p style={{ textAlign: "left", color: "#aaa" }}>Loading snippets...</p>
-      ) : snippets.length === 0 ? (
-        <div style={{ backgroundColor: "#1b1c22", border: "1px solid #2e303a", borderRadius: "12px", padding: "40px", textAlign: "center" }}>
-          <p style={{ color: "#aaa", fontSize: "16px" }}>No snippets posted yet. Click "+ Code" to share the first one!</p>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          {snippets.map((s) => (
-            <div 
-              key={s.id} 
-              style={{ 
-                backgroundColor: "#1b1c22", 
-                border: "1px solid #2e303a", 
-                borderRadius: "10px", 
-                padding: "20px", 
-                textAlign: "left" 
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" }}>
-                <h3 style={{ margin: 0, fontSize: "20px", color: "#f3f4f6" }}>{s.title}</h3>
-                <span style={{ color: "#888", fontSize: "14px" }}>by <strong style={{ color: "#aaa" }}>{s.authorName}</strong></span>
-              </div>
-
-              {s.description && (
-                <p style={{ margin: "0 0 12px 0", color: "#9ca3af", fontSize: "15px" }}>{s.description}</p>
-              )}
-
-              {s.problem && (
-                <div style={{ backgroundColor: "#121212", border: "1px solid #2e303a", padding: "10px 14px", borderRadius: "6px", marginBottom: "12px", fontSize: "14px", color: "#d1d5db" }}>
-                  <strong style={{ color: "#646cff" }}>Problem:</strong> {s.problem}
-                </div>
-              )}
-
-              {/* Code Box with Top-Right Copy Button */}
-              <div style={{ position: "relative" }}>
-                <button
-                  onClick={() => handleCopy(s.id, s.code)}
-                  style={{
-                    position: "absolute",
-                    top: "10px",
-                    right: "10px",
-                    backgroundColor: "#2e303a",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "6px 12px",
-                    color: "#ffffff",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    fontSize: "13px",
-                    fontWeight: "500",
-                    zIndex: 10,
-                    transition: "background-color 0.2s ease"
-                  }}
-                  title="Copy code to clipboard"
-                >
-                  {copiedId === s.id ? (
-                    <>
-                      <Check size={14} color="#4ade80" /> Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={14} /> Copy
-                    </>
-                  )}
-                </button>
-
-                <pre style={{ backgroundColor: "#121212", border: "1px solid #2e303a", padding: "16px", paddingRight: "90px", borderRadius: "6px", overflowX: "auto", fontFamily: "ui-monospace, Consolas, monospace", margin: 0, fontSize: "14px", color: "#e5e7eb" }}>
-                  <code>{s.code}</code>
-                </pre>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
