@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { auth, db } from "../firebase";
-import { signOut, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
+import { auth, googleProvider, db } from "../firebase";
+import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -13,61 +13,38 @@ export function AuthProvider({ children }) {
   const logout = () => signOut(auth);
 
   useEffect(() => {
-    let unsubscribeProfile = null;
-
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-
-      if (user) {
-        const userRef = doc(db, "users", user.uid);
-
-        try {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try {
+        setCurrentUser(user);
+        if (user) {
+          const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
 
-          // 1. If user doesn't exist in Firestore, create doc with isProfileComplete: false
           if (!userSnap.exists()) {
             const newUserData = {
               uid: user.uid,
-              displayName: "",
+              displayName: user.displayName || user.email?.split("@")[0] || "Developer",
               email: user.email,
               photoURL: user.photoURL || "",
               bio: "",
-              isProfileComplete: false, // FIXED: Set to false so new users are sent to setup
+              isProfileComplete: true,
               createdAt: new Date().toISOString()
             };
             await setDoc(userRef, newUserData);
+            setUserProfile(newUserData);
+          } else {
+            setUserProfile(userSnap.data());
           }
-        } catch (error) {
-          console.error("Error creating initial user document:", error);
+        } else {
+          setUserProfile(null);
         }
-
-        // 2. Real-time listener: automatically updates context when /setup-profile saves
-        unsubscribeProfile = onSnapshot(
-          userRef,
-          (docSnap) => {
-            if (docSnap.exists()) {
-              setUserProfile(docSnap.data());
-            } else {
-              setUserProfile(null);
-            }
-            setLoading(false);
-          },
-          (error) => {
-            console.error("Profile snapshot listener error:", error);
-            setLoading(false);
-          }
-        );
-      } else {
-        setUserProfile(null);
-        if (unsubscribeProfile) unsubscribeProfile();
+      } catch (error) {
+        console.error("Auth state change error:", error);
+      } finally {
         setLoading(false);
       }
     });
-
-    return () => {
-      unsubscribeAuth();
-      if (unsubscribeProfile) unsubscribeProfile();
-    };
+    return unsubscribe;
   }, []);
 
   return (
