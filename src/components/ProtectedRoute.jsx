@@ -5,7 +5,6 @@ export default function ProtectedRoute({ children }) {
   const { currentUser, userProfile, loading } = useAuth();
   const location = useLocation();
 
-  // Prevent premature redirection while Firebase restores auth state
   if (loading) {
     return (
       <div 
@@ -22,14 +21,15 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  // Redirect unauthenticated users to login page
+  // Send unauthenticated users to login
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 
-  // Redirect users with incomplete profiles to setup profile
   const isSetupPage = location.pathname === "/setup-profile";
-  if (userProfile && !userProfile.isProfileComplete && !isSetupPage) {
+
+  // Force users without a completed profile document to /setup-profile
+  if ((!userProfile || !userProfile.isProfileComplete) && !isSetupPage) {
     return <Navigate to="/setup-profile" replace />;
   }
 

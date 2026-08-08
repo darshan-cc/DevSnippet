@@ -5,7 +5,8 @@ import {
   getRedirectResult, 
   GoogleAuthProvider 
 } from "firebase/auth";
-import { auth } from "../firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import { Code2, AlertCircle } from "lucide-react";
 
@@ -14,12 +15,33 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Handle redirect response on mobile after returning from Google
+  // Check or initialize Firestore profile document
+  const handleProfileRouting = async (user) => {
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      // First time login: Create profile document marked as incomplete
+      await setDoc(userRef, {
+        uid: user.uid,
+        email: user.email,
+        displayName: "",
+        bio: "",
+        isProfileComplete: false,
+        createdAt: new Date().toISOString()
+      });
+      return false; // Profile incomplete
+    }
+
+    return userSnap.data()?.isProfileComplete === true;
+  };
+
   useEffect(() => {
     getRedirectResult(auth)
-      .then((result) => {
+      .then(async (result) => {
         if (result?.user) {
-          navigate("/");
+          const isComplete = await handleProfileRouting(result.user);
+          navigate(isComplete ? "/" : "/setup-profile");
         }
       })
       .catch((err) => {
@@ -37,12 +59,11 @@ export default function Login() {
 
     try {
       if (isMobile) {
-        // Mobile browsers block popups; use redirect instead
         await signInWithRedirect(auth, provider);
       } else {
-        // Desktop browsers work fine with popup
-        await signInWithPopup(auth, provider);
-        navigate("/");
+        const result = await signInWithPopup(auth, provider);
+        const isComplete = await handleProfileRouting(result.user);
+        navigate(isComplete ? "/" : "/setup-profile");
       }
     } catch (err) {
       console.error("Google sign in error:", err);
