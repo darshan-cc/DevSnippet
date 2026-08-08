@@ -8,12 +8,10 @@ import {
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import { Code2, AlertCircle } from "lucide-react";
-import { FcGoogle } from "react-icons/fc";
 
 export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
 
   // Handle redirect response on mobile after returning from Google
@@ -62,7 +60,7 @@ export default function Login() {
         justifyContent: "center", 
         minHeight: "100vh",
         width: "100%",
-        backgroundColor: "#050507",
+        padding: "20px",
         boxSizing: "border-box"
       }}
     >
@@ -70,65 +68,22 @@ export default function Login() {
         style={{ 
           width: "100%", 
           maxWidth: "400px", 
-           background: "#000000",
-          border: "1px solid #ffffff",
-           borderRadius: "16px",
-           padding: "40px 32px",
-           boxShadow: "0 20px 60px rgba(0, 0, 0, 0.8)",
+          backgroundColor: "#1b1c22", 
+          border: "1px solid #2e303a", 
+          borderRadius: "12px", 
+          padding: "36px 32px", 
           boxSizing: "border-box",
           textAlign: "center"
         }}
       >
-        <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "10px",
-    marginBottom: "16px"
-  }}
->
-  <div
-    style={{
-      width: "40px",
-      height: "40px",
-      borderRadius: "10px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#000000",
-      border: "1px solid #ffffff"
-    }}
-  >
-    <Code2 size={22} color="#ffffff" />
-  </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "16px" }}>
+          <Code2 size={36} color="#646cff" />
+          <h1 style={{ margin: 0, fontSize: "28px", color: "#f3f4f6" }}>DevSnippet</h1>
+        </div>
 
-  <h1
-    style={{
-      margin: 0,
-      fontSize: "32px",
-      fontWeight: "800",
-      letterSpacing: "-0.8px",
-      color: "#ffffff",
-    }}
-  >
-    DevSnippet
-  </h1>
-</div>
-
-<p
-  style={{
-    color: "#d1d1d1",
-    fontSize: "14px",
-    lineHeight: "1.6",
-    margin: "0 0 28px",
-    maxWidth: "320px",
-    marginLeft: "auto",
-    marginRight: "auto"
-  }}
->
-  Sign in to access, save, and share your developer snippets.
-</p>
+        <p style={{ color: "#9ca3af", fontSize: "14px", marginBottom: "28px" }}>
+          Welcome! Sign in with Google to access your developer snippets.
+        </p>
 
         {error && (
           <div 
@@ -136,11 +91,11 @@ export default function Login() {
               display: "flex", 
               alignItems: "center", 
               gap: "8px", 
-              backgroundColor: "#000000",
-              border: "1px solid #ffffff", 
+              backgroundColor: "rgba(230, 57, 70, 0.1)", 
+              border: "1px solid #e63946", 
               borderRadius: "6px", 
               padding: "10px 12px", 
-              color: "#ffffff", 
+              color: "#ff6b6b", 
               fontSize: "13px",
               marginBottom: "20px",
               textAlign: "left"
@@ -153,38 +108,22 @@ export default function Login() {
 
         <button 
           onClick={handleGoogleLogin} 
-          disabled={loading}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)} 
+          disabled={loading} 
           style={{ 
             width: "100%",
-            padding: "14px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "10px",
+            padding: "12px", 
             fontSize: "15px", 
             fontWeight: "600", 
             cursor: loading ? "not-allowed" : "pointer", 
-            background: "#ffffff",
-            color: "#000000",
-            borderRadius: "10px",
-            boxShadow: isHovered
-           ? "0 8px 20px rgba(255, 255, 255, 0.2)"
-           : "0 4px 12px rgba(255, 255, 255, 0.1)",
-            transform: isHovered ? "translateY(-2px)" : "translateY(0)",
+            backgroundColor: "#646cff", 
+            color: "#ffffff", 
+            border: "none", 
+            borderRadius: "6px",
             opacity: loading ? 0.7 : 1,
-            transition: "transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease"
+            transition: "all 0.2s ease"
           }}
         >
-         {loading ? (
-  "Connecting..."
-) : (
-  <>
-    <FcGoogle size={20} />
-    <span>Sign in with Google</span>
-  </>
-)}
+          {loading ? "Connecting..." : "Sign in with Google"}
         </button>
       </div>
     </div>

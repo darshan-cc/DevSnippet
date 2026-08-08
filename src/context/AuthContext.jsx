@@ -24,14 +24,15 @@ export function AuthProvider({ children }) {
         try {
           const userSnap = await getDoc(userRef);
 
-          // Populate standard defaults from Google Account info if new
+          // Mark new user profile document as incomplete for setup workflow
           if (!userSnap.exists()) {
             const newUserData = {
               uid: user.uid,
-              displayName: user.displayName || user.email?.split("@")[0] || "Developer",
+              displayName: "",
               email: user.email,
               photoURL: user.photoURL || "",
               bio: "",
+              isProfileComplete: false,
               createdAt: new Date().toISOString()
             };
             await setDoc(userRef, newUserData);
