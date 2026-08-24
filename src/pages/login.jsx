@@ -7,14 +7,13 @@ import {
 } from "firebase/auth";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
-import { Code2, AlertCircle } from "lucide-react";
+import { Code2, AlertCircle, LogIn } from "lucide-react";
 
 export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Handle redirect response on mobile after returning from Google
   useEffect(() => {
     getRedirectResult(auth)
       .then((result) => {
@@ -37,10 +36,8 @@ export default function Login() {
 
     try {
       if (isMobile) {
-        // Mobile browsers block popups; use redirect instead
         await signInWithRedirect(auth, provider);
       } else {
-        // Desktop browsers work fine with popup
         await signInWithPopup(auth, provider);
         navigate("/");
       }
@@ -55,35 +52,54 @@ export default function Login() {
     <div 
       style={{ 
         display: "flex", 
-        flexDirection: "column", 
         alignItems: "center", 
         justifyContent: "center", 
-        minHeight: "100vh",
-        width: "100%",
-        padding: "20px",
-        boxSizing: "border-box"
+        minHeight: "100vh", 
+        width: "100%", 
+        padding: "20px", 
+        backgroundColor: "var(--bg)", 
+        color: "var(--text)", 
+        boxSizing: "border-box" 
       }}
     >
       <div 
         style={{ 
           width: "100%", 
-          maxWidth: "400px", 
-          backgroundColor: "#1b1c22", 
-          border: "1px solid #2e303a", 
-          borderRadius: "12px", 
-          padding: "36px 32px", 
-          boxSizing: "border-box",
-          textAlign: "center"
+          maxWidth: "420px", 
+          border: "2px solid var(--border)", 
+          backgroundColor: "var(--bg)", 
+          padding: "36px 28px", 
+          display: "flex", 
+          flexDirection: "column", 
+          gap: "20px", 
+          boxSizing: "border-box", 
+          textAlign: "center" 
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "16px" }}>
-          <Code2 size={36} color="#646cff" />
-          <h1 style={{ margin: 0, fontSize: "28px", color: "#f3f4f6" }}>DevSnippet</h1>
+        <div 
+          style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center", 
+            gap: "10px", 
+            borderBottom: "2px solid var(--border)", 
+            paddingBottom: "16px" 
+          }}
+        >
+          <Code2 size={32} color="var(--text-h)" />
+          <h1 style={{ fontSize: "22px", fontWeight: "800", margin: 0, color: "var(--text-h)", letterSpacing: "-0.5px" }}>
+            DEVSNIPPET
+          </h1>
         </div>
 
-        <p style={{ color: "#9ca3af", fontSize: "14px", marginBottom: "28px" }}>
-          Welcome! Sign in with Google to access your developer snippets.
-        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <span style={{ fontFamily: "ui-monospace, monospace", fontSize: "12px", fontWeight: "800", color: "var(--text-h)", letterSpacing: "0.5px" }}>
+            // AUTHENTICATION_REQUIRED
+          </span>
+          <p style={{ fontSize: "14px", color: "var(--text)", lineHeight: "1.5", margin: 0, opacity: 0.85 }}>
+            Sign in with Google to create, save, and manage developer code snippets.
+          </p>
+        </div>
 
         {error && (
           <div 
@@ -91,14 +107,13 @@ export default function Login() {
               display: "flex", 
               alignItems: "center", 
               gap: "8px", 
-              backgroundColor: "rgba(230, 57, 70, 0.1)", 
-              border: "1px solid #e63946", 
-              borderRadius: "6px", 
+              border: "2px solid #ff3333", 
+              color: "#ff3333", 
               padding: "10px 12px", 
-              color: "#ff6b6b", 
-              fontSize: "13px",
-              marginBottom: "20px",
-              textAlign: "left"
+              fontSize: "13px", 
+              fontWeight: "700", 
+              backgroundColor: "rgba(255, 51, 51, 0.05)", 
+              textAlign: "left" 
             }}
           >
             <AlertCircle size={16} style={{ flexShrink: 0 }} />
@@ -110,20 +125,25 @@ export default function Login() {
           onClick={handleGoogleLogin} 
           disabled={loading} 
           style={{ 
-            width: "100%",
-            padding: "12px", 
-            fontSize: "15px", 
-            fontWeight: "600", 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center", 
+            gap: "8px", 
+            width: "100%", 
+            padding: "12px 16px", 
+            fontSize: "13px", 
+            fontWeight: "700", 
             cursor: loading ? "not-allowed" : "pointer", 
-            backgroundColor: "#646cff", 
-            color: "#ffffff", 
-            border: "none", 
-            borderRadius: "6px",
-            opacity: loading ? 0.7 : 1,
-            transition: "all 0.2s ease"
+            backgroundColor: "var(--text-h)", 
+            color: "var(--bg)", 
+            border: "2px solid var(--border)", 
+            letterSpacing: "0.5px", 
+            opacity: loading ? 0.7 : 1, 
+            transition: "all 0.15s ease" 
           }}
         >
-          {loading ? "Connecting..." : "Sign in with Google"}
+          <LogIn size={16} />
+          {loading ? "CONNECTING..." : "SIGN_IN_WITH_GOOGLE"}
         </button>
       </div>
     </div>
