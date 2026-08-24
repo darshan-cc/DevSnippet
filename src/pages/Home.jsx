@@ -4,7 +4,7 @@ import { db, auth } from "../firebase";
 import { collection, getDocs, query, orderBy, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { 
   Settings, Plus, Code2, Copy, Check, Terminal, FileCode, 
-  Layers, User, Users, Heart, MessageSquare, Bookmark, Send, Sun, Moon 
+  Layers, User, Users, Heart, MessageSquare, Bookmark, Send, Sun, Moon, ExternalLink 
 } from "lucide-react";
 import "./Home.css";
 
@@ -24,6 +24,7 @@ export default function Home() {
   
   const [activeCommentId, setActiveCommentId] = useState(null);
   const [commentText, setCommentText] = useState("");
+  const [expandedCodeIds, setExpandedCodeIds] = useState([]);
 
   const navigate = useNavigate();
   const currentUser = auth.currentUser;
@@ -59,6 +60,12 @@ export default function Home() {
     navigator.clipboard.writeText(codeText);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const toggleExpandCode = (id) => {
+    setExpandedCodeIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
   const handleToggleLike = async (snippet) => {
@@ -233,6 +240,14 @@ export default function Home() {
                 const isSaved = (s.savedBy || []).includes(userId);
                 const comments = s.comments || [];
 
+                // Line count check for 30 lines maximum preview
+                const codeLines = (s.code || "").split("\n");
+                const isLongCode = codeLines.length > 30;
+                const isExpanded = expandedCodeIds.includes(s.id);
+                const displayedCode = isLongCode && !isExpanded
+                  ? codeLines.slice(0, 30).join("\n")
+                  : s.code;
+
                 return (
                   <div key={s.id} className="snippet-card">
                     {/* Snippet Header */}
@@ -256,6 +271,27 @@ export default function Home() {
                       </div>
                     )}
 
+                    {/* Image Attachment */}
+                    {s.imageUrl && (
+                      <div className="snippet-media-container">
+                        <img src={s.imageUrl} alt={s.title} className="snippet-post-image" />
+                      </div>
+                    )}
+
+                    {/* Repository Link (Shown directly below the image) */}
+                    {s.repoLink && (
+                      <div className="snippet-repo-container">
+                        <a
+                          href={s.repoLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="snippet-repo-link"
+                        >
+                          <ExternalLink size={14} /> [ OPEN_IN_VS_CODE ]
+                        </a>
+                      </div>
+                    )}
+
                     {/* Code Container */}
                     <div className="code-container">
                       <button onClick={() => handleCopy(s.id, s.code)} className="btn-copy">
@@ -271,8 +307,17 @@ export default function Home() {
                       </button>
 
                       <pre className="code-block">
-                        <code>{s.code}</code>
+                        <code>{displayedCode}</code>
                       </pre>
+
+                      {isLongCode && (
+                        <button
+                          onClick={() => toggleExpandCode(s.id)}
+                          className="btn-see-more"
+                        >
+                          {isExpanded ? "See less..." : "See more..."}
+                        </button>
+                      )}
                     </div>
 
                     {/* Interaction Bar */}

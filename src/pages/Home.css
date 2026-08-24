@@ -227,6 +227,9 @@
   border-radius: 0px;
   padding: 20px;
   text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden; /* Restricts all inner elements from spilling out */
 }
 
 .snippet-header {
@@ -284,6 +287,49 @@
   color: var(--text-color);
 }
 
+/* Media & Links Attachment Constraints */
+.snippet-media-container {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 12px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.snippet-post-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 450px;
+  object-fit: contain; /* Prevents stretching and enforces border limits */
+  border: 2px solid var(--border-color);
+  box-sizing: border-box;
+  background-color: var(--subtle-bg);
+}
+
+.snippet-repo-container {
+  margin-top: 8px;
+  margin-bottom: 14px;
+}
+
+.snippet-repo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-color);
+  text-decoration: underline;
+  text-transform: uppercase;
+  transition: opacity 0.15s ease;
+}
+
+.snippet-repo-link:hover {
+  opacity: 0.8;
+}
+
 /* Code Display Block */
 .code-container {
   position: relative;
@@ -331,6 +377,26 @@
   margin: 0;
   font-size: 13px;
   color: var(--text-color);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-see-more {
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  font-family: 'Oxanium', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 10px 0 2px 0;
+  display: inline-block;
+  text-transform: uppercase;
+  text-decoration: underline;
+}
+
+.btn-see-more:hover {
+  opacity: 0.8;
 }
 
 /* Interaction Bar */
@@ -430,11 +496,7 @@
   border-color: var(--border-color);
 }
 
-/* ==========================================
-   BRUTALIST ICON ANIMATIONS
-   ========================================== */
-
-/* 1. Snap Scale on Hover */
+/* BRUTALIST ICON ANIMATIONS */
 .icon-pop {
   transition: transform 0.15s cubic-bezier(0, 0, 0.2, 1);
 }
@@ -444,7 +506,6 @@
   transform: scale(1.25);
 }
 
-/* 2. Mechanical Spin */
 @keyframes brutal-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -458,7 +519,6 @@
   animation: brutal-spin 0.6s linear infinite;
 }
 
-/* 3. Hard Shift Up */
 .icon-shift-up {
   transition: transform 0.12s ease-in-out;
 }
@@ -466,7 +526,6 @@
   transform: translateY(-3px);
 }
 
-/* 4. Heart Beat Animation */
 @keyframes heart-beat {
   0% { transform: scale(1); }
   50% { transform: scale(1.35); }

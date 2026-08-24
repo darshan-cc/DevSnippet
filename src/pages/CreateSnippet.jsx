@@ -14,8 +14,29 @@ export default function CreateSnippet() {
   const [language, setLanguage] = useState("javascript");
   const [description, setDescription] = useState("");
   const [code, setCode] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [repoLink, setRepoLink] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Handle local image file upload & convert to Base64 with 5MB limit
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 5MB limit check (5 * 1024 * 1024 bytes)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("IMAGE_MUST_BE_LESS_THAN_5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageUrl(reader.result);
+      setError("");
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,11 +65,23 @@ export default function CreateSnippet() {
         currentUser?.email?.split("@")[0] ||
         "anonymous";
 
+      // Transform github.com link to github.dev
+      let formattedRepoLink = repoLink.trim();
+      if (formattedRepoLink) {
+        formattedRepoLink = formattedRepoLink.replace(/(www\.)?github\.com/i, "github.dev");
+        
+        if (!/^https?:\/\//i.test(formattedRepoLink)) {
+          formattedRepoLink = `https://${formattedRepoLink}`;
+        }
+      }
+
       await addDoc(collection(db, "snippets"), {
         title: title.trim(),
         language: language.trim() || "javascript",
         description: description.trim(),
         code: code,
+        imageUrl: imageUrl,
+        repoLink: formattedRepoLink,
         userId: currentUser.uid,
         authorName: userDisplayName,
         likes: [],
@@ -123,6 +156,38 @@ export default function CreateSnippet() {
               className="brutalist-input textarea-short"
               placeholder="Briefly explain what this code snippet does..."
             />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group flex-1">
+              <label>[ UPLOAD_IMAGE (MAX 5MB) ]</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="brutalist-input file-input"
+              />
+              {imageUrl && (
+                <div style={{ marginTop: "10px" }}>
+                  <img
+                    src={imageUrl}
+                    alt="Preview"
+                    style={{ maxHeight: "100px", borderRadius: "4px", border: "1px solid #ccc" }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="form-group flex-1">
+              <label>[ REPOSITORY_LINK (OPTIONAL) ]</label>
+              <input
+                type="url"
+                value={repoLink}
+                onChange={(e) => setRepoLink(e.target.value)}
+                className="brutalist-input"
+                placeholder="https://github.com/user/project"
+              />
+            </div>
           </div>
 
           <div className="form-group">
