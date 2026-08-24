@@ -8,7 +8,7 @@ import {
 } from "firebase/firestore";
 import { 
   ArrowLeft, User, Edit2, Check, X, Trash2, Plus, 
-  Heart, Bookmark, MessageSquare, Copy, ShieldCheck, Code, LogOut, Send 
+  Heart, Bookmark, MessageSquare, Copy, ShieldCheck, Code, LogOut, Send, ExternalLink 
 } from "lucide-react";
 import "./Profile.css";
 
@@ -30,6 +30,7 @@ export default function Profile() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileUsername, setProfileUsername] = useState("");
   const [profileBio, setProfileBio] = useState("");
+  const [profilePhoto, setProfilePhoto] = useState("");
   const [profileError, setProfileError] = useState("");
   const [profileUpdating, setProfileUpdating] = useState(false);
 
@@ -39,6 +40,8 @@ export default function Profile() {
   const [editLanguage, setEditLanguage] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editCode, setEditCode] = useState("");
+  const [editImageUrl, setEditImageUrl] = useState("");
+  const [editRepoUrl, setEditRepoUrl] = useState("");
   const [updating, setUpdating] = useState(false);
 
   const navigate = useNavigate();
@@ -147,6 +150,7 @@ export default function Profile() {
   const startEditingProfile = () => {
     setProfileUsername(userProfile?.displayName || currentUser?.displayName || "");
     setProfileBio(userProfile?.bio || "");
+    setProfilePhoto(userProfile?.photoURL || currentUser?.photoURL || "");
     setProfileError("");
     setIsEditingProfile(true);
   };
@@ -166,12 +170,14 @@ export default function Profile() {
       await updateDoc(userRef, {
         displayName: cleanUsername,
         bio: profileBio.trim(),
+        photoURL: profilePhoto.trim(),
         updatedAt: new Date().toISOString()
       });
 
       if (userProfile) {
         userProfile.displayName = cleanUsername;
         userProfile.bio = profileBio.trim();
+        userProfile.photoURL = profilePhoto.trim();
       }
 
       setIsEditingProfile(false);
@@ -189,6 +195,8 @@ export default function Profile() {
     setEditLanguage(s.language || "");
     setEditDescription(s.description || "");
     setEditCode(s.code || "");
+    setEditImageUrl(s.imageUrl || s.image || "");
+    setEditRepoUrl(s.repoUrl || s.repoLink || s.githubUrl || "");
   };
 
   const handleSaveSnippet = async (snippetId) => {
@@ -202,6 +210,8 @@ export default function Profile() {
         language: editLanguage.trim() || "Plain Text",
         description: editDescription.trim(),
         code: editCode,
+        imageUrl: editImageUrl.trim(),
+        repoUrl: editRepoUrl.trim(),
         updatedAt: new Date().toISOString()
       };
 
@@ -243,6 +253,8 @@ export default function Profile() {
     return false;
   });
 
+  const displayAvatar = userProfile?.photoURL || currentUser?.photoURL;
+
   return (
     <div className="profile-wrapper">
       {/* Top Header */}
@@ -270,6 +282,16 @@ export default function Profile() {
               />
             </div>
             <div className="form-group">
+              <label>[ PROFILE_IMAGE_URL ]</label>
+              <input 
+                type="text" 
+                value={profilePhoto} 
+                onChange={(e) => setProfilePhoto(e.target.value)} 
+                className="brutalist-input"
+                placeholder="https://example.com/avatar.png"
+              />
+            </div>
+            <div className="form-group">
               <label>[ BIO ]</label>
               <textarea 
                 value={profileBio} 
@@ -290,8 +312,17 @@ export default function Profile() {
           </div>
         ) : (
           <div className="profile-main-info">
-            <div className="profile-avatar">
-              <User size={48} />
+            <div className="profile-avatar-wrapper" style={{ position: "relative" }}>
+              <div className="profile-avatar">
+                {displayAvatar ? (
+                  <img src={displayAvatar} alt={userDisplayName} className="avatar-img" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <User size={48} />
+                )}
+              </div>
+              <button onClick={startEditingProfile} className="brutalist-btn edit-avatar-badge" title="Add / Edit Profile Image">
+                <Plus size={12} /> EDIT
+              </button>
             </div>
             <div className="profile-details">
               <div className="profile-info-row">
@@ -354,6 +385,8 @@ export default function Profile() {
                 const isOwner = s.userId === userId;
                 const isLiked = (s.likes || []).includes(userId);
                 const isSaved = (s.savedBy || []).includes(userId);
+                const postImage = s.imageUrl || s.image;
+                const repoLink = s.repoUrl || s.repoLink || s.githubUrl;
 
                 return (
                   <div key={s.id} className="brutalist-card snippet-card">
@@ -372,6 +405,20 @@ export default function Profile() {
                           onChange={(e) => setEditLanguage(e.target.value)} 
                           className="brutalist-input" 
                           placeholder="LANGUAGE"
+                        />
+                        <input 
+                          type="text" 
+                          value={editImageUrl} 
+                          onChange={(e) => setEditImageUrl(e.target.value)} 
+                          className="brutalist-input" 
+                          placeholder="IMAGE_URL (OPTIONAL)"
+                        />
+                        <input 
+                          type="text" 
+                          value={editRepoUrl} 
+                          onChange={(e) => setEditRepoUrl(e.target.value)} 
+                          className="brutalist-input" 
+                          placeholder="REPOSITORY_URL (OPTIONAL)"
                         />
                         <textarea 
                           value={editDescription} 
@@ -410,6 +457,27 @@ export default function Profile() {
                         </div>
 
                         {s.description && <p className="snippet-desc">{s.description}</p>}
+
+                        {/* Image Rendering */}
+                        {postImage && (
+                          <div className="snippet-media-container">
+                            <img src={postImage} alt={s.title} className="snippet-post-image" />
+                          </div>
+                        )}
+
+                        {/* Repository Link Rendering */}
+                        {repoLink && (
+                          <div className="snippet-repo-container">
+                            <a 
+                              href={repoLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="snippet-repo-link"
+                            >
+                              <ExternalLink size={14} /> REPOSITORY_LINK
+                            </a>
+                          </div>
+                        )}
 
                         <div className="code-block-wrapper">
                           <button onClick={() => handleCopyCode(s.id, s.code)} className="brutalist-action copy-btn">
@@ -474,7 +542,7 @@ export default function Profile() {
           )}
         </main>
 
-        {/* Tab Sidebar */}
+        {/* Tab Sidebar Nav */}
         <aside className="sidebar-nav">
           <button 
             className={`tab-link ${activeTab === "mySnippets" ? "active" : ""}`}

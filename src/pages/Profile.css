@@ -40,15 +40,44 @@
   width: 100%;
 }
 
+.profile-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
 .profile-avatar {
+  width: 90px;
+  height: 90px;
   border: 2px solid var(--border-color);
-  padding: 20px;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.edit-avatar-badge {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  padding: 4px 8px !important;
+  font-size: 10px !important;
+  line-height: 1;
+  background-color: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 2px solid var(--border-color) !important;
+  z-index: 5;
 }
 
 .profile-details {
@@ -177,6 +206,7 @@
   gap: 16px;
   box-sizing: border-box;
   width: 100%;
+  overflow: hidden; /* Keeps images and code inside card boundaries */
 }
 
 .snippet-top-bar {
@@ -216,6 +246,50 @@
   font-size: 14px;
   color: var(--text-secondary);
   margin: 0;
+}
+
+/* Snippet Media Attachment Constraints */
+.snippet-media-container {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.snippet-post-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 450px;
+  object-fit: contain; /* Restricts image within border and ratio */
+  border: 2px solid var(--border-color);
+  box-sizing: border-box;
+  background-color: var(--bg-secondary);
+}
+
+/* Repository Link Styling */
+.snippet-repo-container {
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
+.snippet-repo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-transform: uppercase;
+  transition: opacity 0.15s ease;
+}
+
+.snippet-repo-link:hover {
+  opacity: 0.8;
 }
 
 /* Code Display Block */
